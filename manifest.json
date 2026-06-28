@@ -1,0 +1,29 @@
+{
+  "name": "EPI-Check",
+  "short_name": "EPI-Check",
+  "description": "Control de EPIs, herramientas y equipos de trabajo",
+  "start_url": "/epi-check/",
+  "scope": "/epi-check/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='42' fill='%230f172a'/><path d='M96 42C119 42 138 50 138 50V91C138 117 112 141 96 150C80 141 54 117 54 91V50C54 50 73 42 96 42Z' fill='%231e293b' stroke='%23475569' stroke-width='6'/><circle cx='96' cy='96' r='34' fill='%23022c22' stroke='%2310b981' stroke-width='5'/><path d='M83 96L93 106L112 87' stroke='%2310b981' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%230f172a'/><path d='M256 112C308 112 368 133 368 133V243C368 311 299 375 256 400C213 375 144 311 144 243V133C144 133 204 112 256 112Z' fill='%231e293b' stroke='%23475569' stroke-width='16'/><circle cx='256' cy='256' r='90' fill='%23022c22' stroke='%2310b981' stroke-width='13'/><path d='M220 256L248 284L298 232' stroke='%2310b981' stroke-width='26' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false
+}

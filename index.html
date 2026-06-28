@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+
+    <title>EPI-Check - Control de Inspecciones</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M50 22C62 22 72 26 72 26V47.5C72 61 58.5 73.5 50 78C41.5 73.5 28 61 28 47.5V26C28 26 38 22 50 22Z' fill='%231e293b' stroke='%23475569' stroke-width='3'/><circle cx='50' cy='50' r='18' fill='%23022c22' stroke='%23059669' stroke-width='2'/><path d='M43 50L48 55L58 45' stroke='%2310b981' stroke-width='4.5' stroke-linecent='round' stroke-linejoin='round'/></svg>">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('SW registrado:', reg.scope))
+                    .catch(err => console.log('SW error:', err));
+            });
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-24 select-none">
+
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 px-4 py-3 shadow-lg">
+        <div class="max-w-md mx-auto flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline-block">
+                        <path d="M50 22C62 22 72 26 72 26V47.5C72 61 58.5 73.5 50 78C41.5 73.5 28 61 28 47.5V26C28 26 38 22 50 22Z" fill="#1e293b" stroke="#475569" stroke-width="4" stroke-linejoin="round"/>
+                        <circle cx="50" cy="50" r="18" fill="#022c22" stroke="#10b981" stroke-width="3"/>
+                        <path d="M43 50L48 55L58 45" stroke="#10b981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 class="text-lg font-bold tracking-tight text-emerald-400">EPI-Check</h1>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span id="badge-total" class="bg-slate-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-slate-600">
+                        0 Equipos
+                    </span>
+                    <button onclick="toggleSidebar(true)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 p-2 rounded-xl border border-slate-600 transition-colors text-sm">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="relative mt-1">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input id="search-input" type="text" placeholder="Buscar por equipo, marca, serie o código..." 
+                       class="w-full bg-slate-950 border border-slate-600 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition-colors">
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 mt-4">
+
+        <div class="flex bg-slate-950 p-1.5 rounded-xl mb-4 border border-slate-700">
+            <button onclick="cambiarPestana('personal')" id="tab-personal" class="flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-emerald-400 bg-slate-800 shadow-sm">
+                <i class="fa-solid fa-user text-xl"></i>
+            </button>
+            <button onclick="cambiarPestana('furgoneta')" id="tab-furgoneta" class="flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-truck-ramp-box text-xl"></i>
+            </button>
+            <button onclick="cambiarPestana('grua')" id="tab-grua" class="flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-truck-pickup text-xl"></i>
+            </button>
+            <button onclick="cambiarPestana('herramienta')" id="tab-herramienta" class="flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-wrench text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Sub-pestañas Grúa -->
+        <div id="grua-subtabs" class="hidden flex bg-slate-900 p-1 rounded-xl mb-3 border border-slate-700/60">
+            <button onclick="cambiarSubpestana('multi')" id="subtab-multi" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-emerald-400 bg-slate-800 shadow-sm">
+                <i class="fa-solid fa-layer-group"></i> Multi
+            </button>
+            <button onclick="cambiarSubpestana('generador')" id="subtab-generador" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-bolt"></i> Generador
+            </button>
+            <button onclick="cambiarSubpestana('corona')" id="subtab-corona" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-circle-nodes"></i> Corona
+            </button>
+        </div>
+
+        <!-- Filtro categoría Herramienta: chips deslizables -->
+        <div id="herramienta-filtro" class="hidden mb-3 -mx-4 px-4">
+            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" id="herramienta-chips" style="scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+                <button onclick="seleccionarCategoriaHerramienta('')" data-cat=""
+                    class="herr-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all bg-amber-600 border-amber-500 text-white whitespace-nowrap">
+                    Todas
+                </button>
+            </div>
+        </div>
+
+        <div id="stats-grid" class="grid grid-cols-3 gap-2 mb-4">
+            <div onclick="filtrarEstado('vencido')" id="card-stat-1" class="cursor-pointer bg-red-950/40 border border-red-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform">
+                <div class="font-black text-lg text-red-400" id="count-stat-1">0</div>
+                <div class="text-[10px] uppercase font-bold tracking-wider text-red-300" id="label-stat-1">Vencidos</div>
+            </div>
+            <div onclick="filtrarEstado('proximo')" id="card-stat-2" class="cursor-pointer bg-amber-950/40 border border-amber-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform">
+                <div class="font-black text-lg text-amber-400" id="count-stat-2">0</div>
+                <div class="text-[10px] uppercase font-bold tracking-wider text-amber-300" id="label-stat-2">Próximos</div>
+            </div>
+            <div onclick="filtrarEstado('ok')" id="card-stat-3" class="cursor-pointer bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform">
+                <div class="font-black text-lg text-emerald-400" id="count-stat-3">0</div>
+                <div class="text-[10px] uppercase font-bold tracking-wider text-emerald-300" id="label-stat-3">Al Día</div>
+            </div>
+        </div>
+
+        <div id="active-filter-banner" class="hidden justify-between items-center bg-slate-800 border border-slate-700 rounded-xl p-2 mb-4 text-xs text-slate-300">
+            <span>Filtro activo: <b id="filter-text" class="capitalize text-emerald-400"></b></span>
+            <button onclick="limpiarFiltros()" class="text-slate-400 hover:text-white font-bold underline">Quitar filtro</button>
+        </div>
+
+        <button onclick="abrirModalFormulario()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold py-3 px-4 rounded-xl shadow-md mb-5 flex items-center justify-center gap-2 transition-all">
+            <i class="fa-solid fa-plus"></i> Registrar Nuevo Equipo / EPI
+        </button>
+
+        <div id="material-list" class="space-y-3">
+        </div>
+    </main>
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-50 hidden opacity-0 transition-opacity duration-300" onclick="toggleSidebar(false)"></div>
+    <div id="sidebar-panel" class="fixed top-0 right-0 h-full w-[80vw] max-w-[320px] bg-slate-850 z-50 p-5 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col justify-between border-l border-slate-700">
+        <div class="space-y-5">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+                <h3 class="font-bold text-sm uppercase tracking-wider text-slate-300"><i class="fa-solid fa-gear mr-1.5 text-emerald-400"></i> Ajustes del Sistema</h3>
+                <button onclick="toggleSidebar(false)" class="text-slate-400 hover:text-white text-sm p-1">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <div class="bg-slate-900 border border-dashed border-slate-700 rounded-xl p-3.5 text-center space-y-2">
+                <h4 class="text-[11px] font-bold uppercase text-emerald-400 tracking-wide">
+                    <i class="fa-solid fa-file-excel mr-1"></i> Importar desde Excel
+                </h4>
+                <p class="text-[10px] text-slate-400 leading-tight">
+                    Suba un archivo estructurado con campos: equipo, marca, modelo, serie, codigo, revision, proxima, estado, ubicacion.
+                </p>
+                <label class="inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-900 border border-slate-700 text-xs text-slate-200 font-semibold py-1.5 px-3 rounded-lg cursor-pointer transition-colors w-full mt-1 shadow-sm">
+                    <i class="fa-solid fa-folder-open text-emerald-400"></i> Buscar archivo
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="importarDesdeExcel(event)">
+                </label>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-[11px] font-bold uppercase text-slate-400 tracking-wide pl-1">Copia de Seguridad</h4>
+                <button onclick="abrirModalExportar()" class="w-full bg-slate-900 hover:bg-slate-950 text-[11px] py-2.5 px-2 font-semibold rounded-lg text-slate-200 border border-slate-700/60 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download text-sky-400"></i> Exportar datos...
+                </button>
+                <label class="w-full bg-slate-900 hover:bg-slate-950 text-[11px] py-2 px-2 font-semibold rounded-lg text-slate-200 border border-slate-700/60 flex items-center justify-center gap-1 cursor-pointer transition-colors">
+                    <i class="fa-solid fa-upload text-amber-400"></i> Importar copia de seguridad
+                    <input type="file" id="backup-file-input" accept=".json,.txt" class="hidden" onchange="importarDesdeArchivo(event)">
+                </label>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-[11px] font-bold uppercase text-slate-400 tracking-wide pl-1">Notificaciones</h4>
+                <button onclick="activarNotificaciones()" id="btn-notif"
+                    class="w-full bg-slate-900 hover:bg-slate-950 text-[11px] py-2.5 px-2 font-semibold rounded-lg text-slate-200 border border-slate-700/60 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bell text-amber-400"></i> <span id="txt-notif">Ver resumen de alertas</span>
+                </button>
+                <p class="text-[10px] text-slate-500 pl-1">Muestra EPIs vencidos y herramientas en falta. Se abre automáticamente al entrar si hay alertas.</p>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-700 text-center">
+            <button onclick="forzarReinicioCompleto()" class="text-[10px] text-red-400/80 hover:text-red-400 underline decoration-dotted font-medium">
+                <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Valores de Fábrica
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 z-50 hidden opacity-0 transition-opacity duration-300" onclick="cerrarModalFormulario()"></div>
+
+    <div id="modal-form" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-800 rounded-t-2xl z-50 p-5 shadow-2xl translate-y-full transition-transform duration-300 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="modal-title" class="text-base font-bold text-slate-100">Registrar Equipo</h2>
+            <button onclick="cerrarModalFormulario()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
+        </div>
+        
+        <input type="hidden" id="form-id">
+
+        <div class="space-y-3 text-sm">
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre del Equipo / Material *</label>
+                <input type="text" id="form-equipo" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="relative">
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Ubicación / Asignación del Equipo *</label>
+                
+                <button type="button" onclick="toggleSelectorUbicacion()" id="btn-custom-select" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 flex justify-between items-center transition-all">
+                    <span id="custom-select-label" class="flex items-center gap-2 text-slate-200 font-medium"></span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-500 transition-transform duration-200" id="icon-select-arrow"></i>
+                </button>
+                
+                <div id="options-custom-select" class="hidden absolute left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
+                    <div onclick="seleccionarOpcionCustom('personal')" class="px-3 py-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-slate-200 text-xs font-medium">
+                        <i class="fa-solid fa-user text-slate-400 w-4 text-center"></i> EPIs Personales
+                    </div>
+                    <div onclick="seleccionarOpcionCustom('furgoneta')" class="px-3 py-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-slate-200 text-xs font-medium">
+                        <i class="fa-solid fa-truck-ramp-box text-slate-400 w-4 text-center"></i> Furgoneta
+                    </div>
+                    <div onclick="seleccionarOpcionCustom('grua')" class="px-3 py-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-slate-200 text-xs font-medium">
+                        <i class="fa-solid fa-truck-pickup text-slate-400 w-4 text-center"></i> Grúa
+                    </div>
+                    <div onclick="seleccionarOpcionCustom('herramienta')" class="px-3 py-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-2 text-slate-200 text-xs font-medium">
+                        <i class="fa-solid fa-wrench text-slate-400 w-4 text-center"></i> Herramienta
+                    </div>
+                </div>
+
+                <input type="hidden" id="form-ubicacion" value="personal">
+            </div>
+
+            <!-- Sububicación — solo visible en pestaña Grúa -->
+            <div id="campo-sububicacion" class="hidden">
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Sububicación en Grúa *</label>
+                <div class="flex gap-2">
+                    <button type="button" onclick="seleccionarSububicacion('multi')" id="subbtn-multi"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-layer-group mr-1"></i> Multi
+                    </button>
+                    <button type="button" onclick="seleccionarSububicacion('generador')" id="subbtn-generador"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-bolt mr-1"></i> Generador
+                    </button>
+                    <button type="button" onclick="seleccionarSububicacion('corona')" id="subbtn-corona"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-circle-nodes mr-1"></i> Corona
+                    </button>
+                </div>
+                <input type="hidden" id="form-sububicacion" value="">
+            </div>
+
+            <!-- Código -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Código Herramienta</label>
+                <input type="text" id="form-codigo" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- Campos personal/furgoneta: marca, serie, fechas -->
+            <div id="campos-no-grua">
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Marca</label>
+                        <input type="text" id="form-marca" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Modelo</label>
+                        <input type="text" id="form-modelo" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Número de Serie</label>
+                        <input type="text" id="form-serie" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div><!-- spacer --></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Última Revisión</label>
+                        <input type="text" id="form-revision" placeholder="Ej: 01-10-2024" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Próxima Revisión</label>
+                        <input type="text" id="form-proxima" placeholder="Ej: 01-10-2025" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos exclusivos Herramienta -->
+            <div id="campos-herramienta" class="hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Debe haber</label>
+                    <input type="number" min="0" id="form-debe-haber"
+                        class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono text-center focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Estado</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="establecerEstadoHerramienta('ok')" id="herrbtn-ok"
+                            class="py-2.5 text-xs font-bold rounded-xl border transition-all bg-emerald-700 border-emerald-500 text-white flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-check text-base"></i>OK
+                        </button>
+                        <button type="button" onclick="establecerEstadoHerramienta('deteriorado')" id="herrBtn-deteriorado"
+                            class="py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-950 border-orange-700 text-orange-400 flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-screwdriver-wrench text-base"></i>Deteriorado
+                        </button>
+                        <button type="button" onclick="establecerEstadoHerramienta('falta')" id="herrBtn-falta"
+                            class="py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-950 border-red-700 text-red-400 flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-triangle-exclamation text-base"></i>Falta
+                        </button>
+                    </div>
+                    <input type="hidden" id="form-estado-herr" value="ok">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Estado / Observaciones</label>
+                <textarea id="form-estado" rows="2" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+            </div>
+
+            <button onclick="guardarFormulario()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg mt-2 transition-colors">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Equipo
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ── Seguridad: escapado HTML para prevenir XSS ──────────────────────────
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+        }
+
+        // ── Validación de esquema al cargar datos ───────────────────────────────
+        const UBICACIONES_VALIDAS = ['personal', 'furgoneta', 'grua', 'herramienta'];
+        const SUBUBICACIONES_VALIDAS = ['multi', 'generador', 'corona', ''];
+
+        function sanitizarItem(raw) {
+            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+            const id = String(raw.id || '').replace(/[^a-zA-Z0-9\-_]/g, '');
+            if (!id) return null;
+            const ub = UBICACIONES_VALIDAS.includes(String(raw.ubicacion)) ? String(raw.ubicacion) : 'personal';
+            // grúa: whitelist fija; herramienta: texto libre (categoría del Excel)
+            let sub = '';
+            if (ub === 'grua') {
+                sub = ['multi','generador','corona'].includes(String(raw.sububicacion || '')) ? String(raw.sububicacion) : '';
+            } else if (ub === 'herramienta') {
+                sub = String(raw.sububicacion || '').trim().slice(0, 100);
+            }
+            return {
+                id,
+                equipo:      String(raw.equipo   || '').trim().slice(0, 200),
+                marca:       String(raw.marca     || '').trim().slice(0, 100),
+                modelo:      String(raw.modelo    || '').trim().slice(0, 100),
+                serie:       String(raw.serie     || 'S/N').trim().slice(0, 100),
+                codigo:      String(raw.codigo    || '').trim().slice(0, 100),
+                revision:    String(raw.revision  || 'N/A').trim().slice(0, 50),
+                proxima:     String(raw.proxima   || 'N/A').trim().slice(0, 50),
+                estado:      String(raw.estado    || 'Buen estado').trim().slice(0, 500),
+                ubicacion:   ub,
+                sububicacion: sub,
+                debeHaber:   ub === 'herramienta' ? String(raw.debeHaber || '1').trim().slice(0, 10) : '',
+                falta:       ub === 'herramienta' ? (['ok','falta','deteriorado'].includes(String(raw.falta || '').toLowerCase()) ? String(raw.falta).toLowerCase() : 'ok') : ''
+            };
+        }
+
+        function cargarDesdeLocalStorage() {
+            try {
+                const raw = localStorage.getItem('app_epicheck_pestanas_ordenadas');
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return null;
+                const validos = parsed.map(sanitizarItem).filter(Boolean);
+                return validos.length > 0 ? validos : null;
+            } catch {
+                return null;
+            }
+        }
+
+        const inventarioBase = [
+            {"id": "MAT-1", "equipo": "Arnes", "marca": "PETZL", "modelo": "VOLT", "serie": "C072DA02", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado falla piezas de enganche", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-2", "equipo": "Casco", "marca": "SAFETOP", "modelo": "", "serie": "80660", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-3", "equipo": "Rana", "marca": "HONEYEWLL", "modelo": "Söll VC510", "serie": "21349259/010", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-4", "equipo": "Doble cabo", "marca": "IRUDEK", "modelo": "ABE 383", "serie": "12515/0439", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Leve desgaste por uso", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-5", "equipo": "Antitrauma", "marca": "TRUDEK", "modelo": "", "serie": "S/N", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-6", "equipo": "Canario/Detector de gases", "marca": "HONEYWELL", "modelo": "BWC2-X", "serie": "5220BWC01230109546", "revision": "No necesita revision", "proxima": "No necesita revision", "estado": "Nuevo entregado dia 03/07/2025", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-7", "equipo": "Anticaidas", "marca": "IRUDEK", "modelo": "KARBOR", "serie": "01477572/0486", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "En buen estado", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-8", "equipo": "Triangulo de rescate", "marca": "SAFETOP", "modelo": "", "serie": "22278932", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "En buen estado fecha fabricacion 2022", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-9", "equipo": "Descensor", "marca": "SALA", "modelo": "SALA DBI", "serie": "E00403500A01FAFE", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-10", "equipo": "Cinta posicionamiento", "marca": "3M", "modelo": "", "serie": "210625117019", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Buen estado", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-11", "equipo": "Eslinga retenida sacas", "marca": "SOLULIFT", "modelo": "", "serie": "14", "revision": "01-07-2025", "proxima": "01-07-2026", "estado": "Buen estado", "codigo": "NW-C-UEL-10.02/014", "ubicacion": "furgoneta"},
+            {"id": "MAT-12", "equipo": "Verificador tension", "marca": "MEGGER", "modelo": "TPT420", "serie": "H220721780", "revision": "28-02-2025", "proxima": "28-02-2026", "estado": "En buen estado", "codigo": "NW-C-VRT-004", "ubicacion": "furgoneta"},
+            {"id": "MAT-13", "equipo": "Pinza amperimetrica", "marca": "FLUKE", "modelo": "374FC", "serie": "48180896WS", "revision": "01-02-2025", "proxima": "01-02-2027", "estado": "En buen salvo las punteras de medicion al estar algo deterioradas", "codigo": "NW-C-PA-008", "ubicacion": "furgoneta"},
+            {"id": "MAT-14", "equipo": "Polimetro", "marca": "FLUKE", "modelo": "175", "serie": "30240271", "revision": "01-10-2023", "proxima": "01-10-2025", "estado": "En buen estado", "codigo": "NW-C-PO-008", "ubicacion": "furgoneta"},
+            {"id": "MAT-15", "equipo": "Mascara de gases", "marca": "DRÄGER", "modelo": "X-PLORE 5500", "serie": "5654602", "revision": "06/2025 interna", "proxima": "06/2026 interna", "estado": "Buen estado y filtros tambien", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-16", "equipo": "Orejeras proteccion", "marca": "3M", "modelo": "PELTOR", "serie": "H540P3", "revision": "N/A", "proxima": "N/A", "estado": "En buen estado", "codigo": "", "ubicacion": "personal"},
+            {"id": "MAT-17", "equipo": "Guantes proteccion baja tension", "marca": "ELECTROSOFT", "modelo": "CLASE0", "serie": "2091907", "revision": "26-02-2025", "proxima": "26-08-2025", "estado": "Buen estado", "codigo": "NW-AS-GBT-001B", "ubicacion": "personal"},
+            {"id": "MAT-18", "equipo": "Pantalla inatinica", "marca": "UVEX", "modelo": "V-76", "serie": "25086", "revision": "20-08-2024", "proxima": "20-08-2025", "estado": "Buen estado", "codigo": "NW-C-PANT-004", "ubicacion": "personal"},
+            {"id": "MAT-19", "equipo": "Calibre", "marca": "SATINLESS", "modelo": "HARDENED", "serie": "12900N", "revision": "01-12-2022", "proxima": "01-12-2026", "estado": "Buen estado", "codigo": "NW-C-PR-009", "ubicacion": "furgoneta"},
+            {"id": "MAT-20", "equipo": "Manometro digital", "marca": "KELLER", "modelo": "LEO 2", "serie": "78510", "revision": "01-10-2024", "proxima": "01-10-2025", "estado": "Embellecedor conexion con grapas rotas esta con cinta aislante", "codigo": "NW-C-MD-012", "ubicacion": "furgoneta"},
+            {"id": "MAT-21", "equipo": "Baliza polipasto", "marca": "CONTACT", "modelo": "IDIADA", "serie": "21010282", "revision": "N/A", "proxima": "N/A", "estado": "Buen estado y armazon", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-22", "equipo": "Lampara portatil", "marca": "BAHCO", "modelo": "OEX", "serie": "No visible", "revision": "N/A", "proxima": "N/A", "estado": "Rotula dañada y falta pantalla lampara lateral", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-23", "equipo": "Foco led", "marca": "KRAFTEWRK", "modelo": "HEXA 2000", "serie": "32037", "revision": "N/A", "proxima": "N/A", "estado": "Leves desgaste por uso", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-24", "equipo": "Pulpo de izado de cargas", "marca": "BEZABALA", "modelo": "ILEGIBLE ", "serie": "ILEGIBLE ", "revision": "2025-07-01", "proxima": "2026-07-01", "estado": "Buen estado en general salvo lenguetas de seguridad que estan algo deterioradas", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-25", "equipo": "Extintor coche en nave", "marca": "FIREICE", "modelo": "ILEGIBLE ", "serie": "1497397", "revision": "NO SE APRECIA", "proxima": "NO SE APRECIA", "estado": "Buen estado", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-26", "equipo": "Extintor coche", "marca": "FIREICE", "modelo": "", "serie": "1497422", "revision": "N/A", "proxima": "N/A", "estado": "Buen estado", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-27", "equipo": "Eslinga", "marca": "3M", "modelo": "Protecta", "serie": "108511581 009", "revision": "2025-10-01", "proxima": "2026-10-01", "estado": "Nueva", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-28", "equipo": "Eslinga", "marca": "3M", "modelo": "Protecta", "serie": "108511581 011", "revision": "2025-10-01", "proxima": "2026-10-01", "estado": "Nueva", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-29", "equipo": "Roldana", "marca": "PETZL", "modelo": "pro traxion", "serie": "25H671854716", "revision": "N/A", "proxima": "N/A", "estado": "Nueva", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-30", "equipo": "Eslinga 1000KG CORTA", "marca": "No se ve", "modelo": "No se ve", "serie": "0126970/01 0911", "revision": "01-07-2025", "proxima": "01-07-2026", "estado": "Nueva", "codigo": "NW-C-EULES-127", "ubicacion": "furgoneta"},
+            {"id": "MAT-31", "equipo": "Cuerda 20m", "marca": "PETZL", "modelo": "No se ve", "serie": "R077XY  3342540839748", "revision": "N/A", "proxima": "N/A", "estado": "Nueva", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-32", "equipo": "Pistola de par", "marca": "Makita", "modelo": "DTW300", "serie": "672543G", "revision": "N/A", "proxima": "N/A", "estado": "Nueva", "codigo": "", "ubicacion": "furgoneta"},
+            {"id": "MAT-33", "equipo": "Guantes alta tension", "marca": "SOFAMEL", "modelo": "CLASE 4 RC TALLA 10", "serie": "S/N", "revision": "24-02-2026", "proxima": "24-08-2026", "estado": "Buen estado", "codigo": "NW-C-GAT-827", "ubicacion": "personal"},
+            {"id": "MAT-34", "equipo": "Lonas protección nacelle B600", "marca": "Toldos Gomez", "modelo": "Lona protección nacelle bonus 600", "serie": "0224492-2", "revision": "01-04-2026", "proxima": "01-05-2026", "estado": "Nuevo", "codigo": "NW-C-LOCON-011", "ubicacion": "furgoneta"},
+            {"id": "MAT-35", "equipo": "Lonas protección nacelle B600", "marca": "Toldos Gomez", "modelo": "Lona protección nacelle bonus 600", "serie": "0224492-3", "revision": "01-04-2026", "proxima": "01-05-2026", "estado": "Nuevo", "codigo": "NW-C-LOCON-012", "ubicacion": "furgoneta"}
+        ];
+
+        const herramientasBase = [{"id":"MAT-HERR-34","equipo":"ALICATE UNIVERSAL 180MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-35","equipo":"ALICATE DE CORTE 160MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-41","equipo":"ALICATE SACA-GRUPILLAS INT 180","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-38","equipo":"ALICATE SACA-GRUPILLAS EXT 180","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-48","equipo":"ALICATE PELACABLE FACOM COD: 793936PB","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-70","equipo":"TENAZAS PICOLORO GRANDE (300MM)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-71","equipo":"TENAZAS PICOLORO PEQUEÑA (180MM)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-72","equipo":"TENAZAS DE PRESIÓN 250","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-73","equipo":"TENAZAS DE PRESIÓN 175","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALICATES","categoria":"ALICATES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-241","equipo":"JUEGO DE LLAVES ALLEN 1,5-2-2,5-3-4-5-6-8-10MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-261","equipo":"LLAVE ALLEN 7MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-351","equipo":"VASO 1/2\" ALLEN 8MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-352","equipo":"VASO 1/2\" ALLEN 10MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-353","equipo":"VASO 1/2\" ALLEN 12MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-587","equipo":"VASO 1/4\" PUNTA ALLEN 3MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-588","equipo":"VASO 1/4\" PUNTA ALLEN 4MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-589","equipo":"VASO 1/4\" PUNTA ALLEN 5MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-590","equipo":"VASO 1/4\" PUNTA ALLEN 6MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-591","equipo":"VASO ALLEN 1/4\" 8MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ALLEN","categoria":"ALLEN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-559","equipo":"BOMBA ENGRASE MANUAL 500 CC","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"BOMBAS DE ENGRASE","categoria":"BOMBAS DE ENGRASE","debeHaber":"2","falta":"OK"},{"id":"MAT-HERR-560","equipo":"BOQUILLA ENGRASE 3 GRAPAS 15X37MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"BOMBAS DE ENGRASE","categoria":"BOMBAS DE ENGRASE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-101","equipo":"CARRACA JUEGO 1/2\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CARRACA","categoria":"CARRACA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-102","equipo":"CARRACA JUEGO 1/4\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CARRACA","categoria":"CARRACA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-146","equipo":"LLAVE CARRACA DOBLE 10-11MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-147","equipo":"LLAVE CARRACA DOBLE 12-13MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-148","equipo":"LLAVE CARRACA DOBLE 17-19MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-149","equipo":"LLAVE CARRACA DOBLE 22-24MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-151","equipo":"LLAVE COMBINADA DE CARRACA 13MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-152","equipo":"LLAVE COMBINADA DE CARRACA 17MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-153","equipo":"LLAVE COMBINADA DE CARRACA 19MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-154","equipo":"LLAVE COMBINADA DE CARRACA 24MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-18","equipo":"VASO 1/4\" PORTAPUNTAS","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CHICHARRAS Y VASOS","categoria":"CHICHARRAS Y VASOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-108","equipo":"LLAVE COMBINADA 6MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-109","equipo":"LLAVE COMBINADA 7MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-110","equipo":"LLAVE COMBINADA 8MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-111","equipo":"LLAVE COMBINADA 9MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-112","equipo":"LLAVE COMBINADA 10MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-113","equipo":"LLAVE COMBINADA 11MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-114","equipo":"LLAVE COMBINADA 12MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-115","equipo":"LLAVE COMBINADA 13MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-116","equipo":"LLAVE COMBINADA 14MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-117","equipo":"LLAVE COMBINADA 15MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-118","equipo":"LLAVE COMBINADA 16MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-119","equipo":"LLAVE COMBINADA 17MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-120","equipo":"LLAVE COMBINADA 18MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-121","equipo":"LLAVE COMBINADA 19MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-124","equipo":"LLAVE COMBINADA 22MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-125","equipo":"LLAVE COMBINADA 24MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-127","equipo":"LLAVE COMBINADA 27MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-129","equipo":"LLAVE COMBINADA 30MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-130","equipo":"LLAVE COMBINADA 32MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-135","equipo":"LLAVE COMBINADA 46MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-141","equipo":"LLAVE PLANA 36-41","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE COMBINADA/ FIJAS","categoria":"LLAVE COMBINADA/ FIJAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-62","equipo":"CORTAFRIO-CINCEL PLANO CON PROTECCIÓN 125MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CINCELES Y BOTADORES","categoria":"CINCELES Y BOTADORES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-64","equipo":"CORTAFRIO-CINCEL PLANO CON PROTECCIÓN 300MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CINCELES Y BOTADORES","categoria":"CINCELES Y BOTADORES","debeHaber":"2","falta":"OK"},{"id":"MAT-HERR-59","equipo":"JUEGO BOTADORES","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"CINCELES Y BOTADORES","categoria":"CINCELES Y BOTADORES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-178","equipo":"LLAVE DE GOLPE FIJA 65MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE DE GOLPE","categoria":"LLAVE DE GOLPE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-179","equipo":"LLAVE DE GOLPE FIJA 70MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE DE GOLPE","categoria":"LLAVE DE GOLPE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-180","equipo":"LLAVE DE GRIFA 12\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE: GRIFA/ TUBO/PIVOTE","categoria":"LLAVE: GRIFA/ TUBO/PIVOTE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-181","equipo":"LLAVE DE GRIFA 18\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE: GRIFA/ TUBO/PIVOTE","categoria":"LLAVE: GRIFA/ TUBO/PIVOTE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-474","equipo":"TALADRO ATOR. PERSUCIÓN (MALETIN+CARGADOR+2 BATERIAS)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"HERRAMIENTA ELECTRICA/BATERIA/COMPONENTES","categoria":"HERRAMIENTA ELECTRICA/BATERIA/COMPONENTES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-188","equipo":"LLAVE INGLESA DE 8\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE INGLESA","categoria":"LLAVE INGLESA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-190","equipo":"LLAVE INGLESA DE 12\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE INGLESA","categoria":"LLAVE INGLESA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-191","equipo":"LLAVE INGLESA DE 18\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LLAVE INGLESA","categoria":"LLAVE INGLESA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-194","equipo":"LLAVE PARA FILTRO 300MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-30","equipo":"TIJERA ELECTRICISTA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-65","equipo":"CEPILLO DE PUAS ALAMBRE","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-66","equipo":"ARCO DE SIERRA DE MANO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-69","equipo":"BARRA DE UÑA DESENCOFRADOR 22X1000","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-77","equipo":"REMACHADORA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-86","equipo":"LINTERNA HALOGENA ARTICULADA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-87","equipo":"FOCO LED RECARGABLE","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-92","equipo":"ESPEJO PARA REVISION DIFICIL ACCESO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-96","equipo":"PISTOLA DE SILICONA REFORZADA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-105","equipo":"EMBUDO GRANDE: 250 MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-238","equipo":"LLAVE UNIVERSAL PARA ARMARIO ELÉCTRICO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-465","equipo":"RECOGEDOR PLASTICO CON CEPILLO DE MANO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-515","equipo":"BIDON 5LT CON GRIFO HOMOLOGADO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-527","equipo":"BASE DE ENCHUFES MULTIPLE AISLADA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-556","equipo":"ADAPTADOR TOMA CETAC-TOMA SCHUKO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-585","equipo":"PRISMÁTICO AUMENTO 10X25","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"GENERAL","categoria":"GENERAL","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-199","equipo":"LLAVE DINAMOMETRICA 20-100 NM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-201","equipo":"LLAVE DINAMOMETRICA 80-400 NM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-218","equipo":"LLAVE INSERTABLE PARA DINA BOCA ESTRELLA 24MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-219","equipo":"LLAVE INSERTABLE PARA DINA BOCA ESTRELLA 30MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-204","equipo":"CABEZA DE CARRACA 1/2\" CUADRADILLO 9X12 DINAMOMÉTRICA FACOM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-207","equipo":"CARRACA INSERTABLE 1/2\" CUADRADILLO 14X18MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-208","equipo":"CARRACA INSERTABLE 1/4\" CUADRADILLO 9X12MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DINAMOMETRICA","categoria":"DINAMOMETRICA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-97","equipo":"ESPATULA 30MM MANGO BIMATERIAL 389","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ESPATULA Y BROCHA","categoria":"ESPATULA Y BROCHA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-98","equipo":"ESPATULA 50MM MANGO BIMATERIAL 389","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ESPATULA Y BROCHA","categoria":"ESPATULA Y BROCHA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-99","equipo":"ESPATULA 80MM MANGO BIMATERIAL 389","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ESPATULA Y BROCHA","categoria":"ESPATULA Y BROCHA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-100","equipo":"ESPATULA 100MM MANGO BIMATERIAL 389","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"ESPATULA Y BROCHA","categoria":"ESPATULA Y BROCHA","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-1","equipo":"JUEGO DE DESTORNILLADORES AISLADOS PLANOS: (0,4 X 2,5 X 75 MM) - (0,6 X 3,5 X 100 MM) - (1,0 X 5,5 X 125 MM) - (1,2 X 6,5 X 150 MM) / ESTRELLA: PH1 - PH2","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DESTORNILLADORES","categoria":"DESTORNILLADORES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-15","equipo":"DESTORNILLADOR CORTO ESTRELLA 1X25","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DESTORNILLADORES","categoria":"DESTORNILLADORES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-16","equipo":"DESTORNILLADOR CORTO ESTRELLA 2X25","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"DESTORNILLADORES","categoria":"DESTORNILLADORES","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-20","equipo":"MARTILLO BOLA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"MARTILLO Y SARGENTOS","categoria":"MARTILLO Y SARGENTOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-22","equipo":"MARTILLO DE NYLON GRANDE 50MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"MARTILLO Y SARGENTOS","categoria":"MARTILLO Y SARGENTOS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-55","equipo":"LIMA MEDIA CAÑA E-10","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"LIMAS","categoria":"LIMAS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-88","equipo":"CALIBRE UNIVERSAL","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-90","equipo":"FLEXOMETRO DE 5M","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-91","equipo":"JUEGO DE GALGAS DE ESPESORES 0,05-1MM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-461","equipo":"MANOMETRO DIGITAL 0-300 BAR","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-463","equipo":"RECAMBIO PROTECCIÓN GOMA PARA MANOMETRO","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-642","equipo":"MULTÍMETRO DIGITAL (TIPO: FLUKE 175)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-643","equipo":"PINZA AMPERIMÉTRICA 600A (TIPO:FLUKE374)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-644","equipo":"FUNDA FLEXIBLE MULTÍMETRO(TIPO:FLUKEC90)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-651","equipo":"EXTRACTOR DE FUSIBLESTIPO NH(NH00 A NH4)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-653","equipo":"VERIFICADOR DE TENSIÓN 1000V MEGGER TPT4","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-464","equipo":"MALETÍN PARA MANOMETRO DIGITAL","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"INSTRUMENTACIÓN","categoria":"INSTRUMENTACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-80","equipo":"WALKIE TALKIE SIN LICENCIA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"WALKYS","categoria":"WALKYS","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-272","equipo":"PISTOLA IMPACTO 1/2\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"IMPACTO","categoria":"IMPACTO","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-283","equipo":"PASADOR SUJETA VASOS IMPACTO + GOMA 1/2\"","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"IMPACTO","categoria":"IMPACTO","debeHaber":"5","falta":"OK"},{"id":"MAT-HERR-242","equipo":"JUEGO DE LLAVES TORX 8 PIEZAS (T9, T10, T15, T20, T25, T27, T30, T40)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"TORX","categoria":"TORX","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-563","equipo":"ESLINGA PLANA POLIESTER 2 GAZAS 1TN - 1M","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"2","falta":"OK"},{"id":"MAT-HERR-564","equipo":"ESLINGA PLANA POLIESTER 2 GAZAS 1TN - 1,5M","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"2","falta":"OK"},{"id":"MAT-HERR-607","equipo":"SACA REDONDA: 45 X Ø45","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"2","falta":"OK"},{"id":"MAT-HERR-609","equipo":"SACA REDONDA: 50 X Ø45","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"3","falta":"OK"},{"id":"MAT-HERR-610","equipo":"SACA REDONDA: 60 X Ø50","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-612","equipo":"SACA REDONDA: 100 X Ø30 (NITRÓGENO)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-618","equipo":"SACA RECTANGULAR: 45X40X45(LXANCHXALT)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-623","equipo":"SACA RECTANGULAR:60X40X55(LXANCHXALT)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-640","equipo":"PULPO CADENA 2 R. X 0,5 M. ACORTADOR Y GANCHO A.","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"SACAS Y ELEVACIÓN","categoria":"SACAS Y ELEVACIÓN","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-530","equipo":"BOLSA HERRAMIENTAS BANDOLERA","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"TRANSPORTE","categoria":"TRANSPORTE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-532","equipo":"BOLSA HERRAMIENTAS CERRADA 47X23X37 CM","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"TRANSPORTE","categoria":"TRANSPORTE","debeHaber":"1","falta":"OK"},{"id":"MAT-HERR-537","equipo":"BOLSA-MOCHILA HERRAMIENTA STANLEY REF: STST1-72 (36X16X44)","marca":"","modelo":"","serie":"S/N","codigo":"","revision":"N/A","proxima":"N/A","estado":"Buen estado","ubicacion":"herramienta","sububicacion":"TRANSPORTE","categoria":"TRANSPORTE","debeHaber":"1","falta":"OK"}];
+
+        let inventario = cargarDesdeLocalStorage();
+        if (!inventario) {
+            // Primera vez: combinar base con herramientas
+            const combined = [...inventarioBase];
+            const nombresExistentes = new Set(combined.map(x => x.equipo.trim().toLowerCase()));
+            for (const h of herramientasBase) {
+                if (!nombresExistentes.has(h.equipo.trim().toLowerCase())) {
+                    combined.push(h);
+                    nombresExistentes.add(h.equipo.trim().toLowerCase());
+                }
+            }
+            inventario = combined;
+            localStorage.setItem('app_epicheck_pestanas_ordenadas', JSON.stringify(inventario));
+        } else {
+            // Ya hay datos guardados: SOLO añadir items nuevos que no existan por ID
+            // NUNCA sobreescribir items existentes (preserva cambios del usuario)
+            const idsExistentes = new Set(inventario.map(x => x.id));
+            const nombresExistentes = new Set(inventario.map(x => x.equipo.trim().toLowerCase()));
+            let added = 0;
+            const todosLosBase = [...inventarioBase, ...herramientasBase];
+            for (const item of todosLosBase) {
+                if (!idsExistentes.has(item.id) && !nombresExistentes.has(item.equipo.trim().toLowerCase())) {
+                    inventario.push(item);
+                    idsExistentes.add(item.id);
+                    nombresExistentes.add(item.equipo.trim().toLowerCase());
+                    added++;
+                }
+            }
+            if (added > 0) localStorage.setItem('app_epicheck_pestanas_ordenadas', JSON.stringify(inventario));
+        }
+        
+        let filtroEstadoActual = null;
+        let pestanaActual = 'personal';
+        let sububicacionActual = 'multi';
+        let categoriaHerramientaActual = '';
+
+        function guardarEnLocalStorage() {
+            localStorage.setItem('app_epicheck_pestanas_ordenadas', JSON.stringify(inventario));
+        }
+
+        function seleccionarCategoriaHerramienta(cat) {
+            categoriaHerramientaActual = cat;
+            document.querySelectorAll('.herr-chip').forEach(btn => {
+                const activo = btn.dataset.cat === cat;
+                btn.className = activo
+                    ? 'herr-chip flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all bg-slate-800 border-emerald-500 text-emerald-400 shadow-sm min-w-[56px]'
+                    : 'herr-chip flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all bg-slate-900 border-slate-700 text-slate-400 min-w-[56px]';
+            });
+            renderApp();
+        }
+
+        function cambiarPestana(pestana) {
+            pestanaActual = pestana;
+            const claseActiva = "flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-emerald-400 bg-slate-800 shadow-sm";
+            const claseInactiva = "flex-1 py-3 rounded-lg transition-all flex items-center justify-center text-slate-400 hover:text-slate-200";
+
+            document.getElementById('tab-personal').className = pestana === 'personal' ? claseActiva : claseInactiva;
+            document.getElementById('tab-furgoneta').className = pestana === 'furgoneta' ? claseActiva : claseInactiva;
+            document.getElementById('tab-grua').className = pestana === 'grua' ? claseActiva : claseInactiva;
+            document.getElementById('tab-herramienta').className = pestana === 'herramienta' ? claseActiva : claseInactiva;
+
+            const esGrua = pestana === 'grua';
+            const subtabs = document.getElementById('grua-subtabs');
+            const filtroCategoria = document.getElementById('herramienta-filtro');
+            if (esGrua) {
+                subtabs.classList.remove('hidden');
+                if (filtroCategoria) filtroCategoria.classList.add('hidden');
+                cambiarSubpestana(sububicacionActual);
+            } else if (pestana === 'herramienta') {
+                subtabs.classList.add('hidden');
+                categoriaHerramientaActual = '';
+                if (filtroCategoria) filtroCategoria.classList.remove('hidden');
+                renderApp();
+            } else {
+                subtabs.classList.add('hidden');
+                if (filtroCategoria) filtroCategoria.classList.add('hidden');
+                renderApp();
+            }
+        }
+
+        function cambiarSubpestana(sub) {
+            sububicacionActual = sub;
+            const claseActiva = "flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-emerald-400 bg-slate-800 shadow-sm";
+            const claseInactiva = "flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
+            ['multi','generador','corona'].forEach(s => {
+                document.getElementById('subtab-' + s).className = s === sub ? claseActiva : claseInactiva;
+            });
+            renderApp();
+        }
+
+        function toggleSidebar(open) {
+            const overlay = document.getElementById('sidebar-overlay');
+            const panel = document.getElementById('sidebar-panel');
+            
+            if(open) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.add('opacity-100');
+                    panel.classList.replace('translate-x-full', 'translate-x-0');
+                }, 10);
+            } else {
+                overlay.classList.remove('opacity-100');
+                panel.classList.replace('translate-x-0', 'translate-x-full');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function toggleSelectorUbicacion() {
+            const menu = document.getElementById('options-custom-select');
+            const arrow = document.getElementById('icon-select-arrow');
+            menu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        function seleccionarOpcionCustom(valor) {
+            const inputOculto = document.getElementById('form-ubicacion');
+            const label = document.getElementById('custom-select-label');
+            
+            inputOculto.value = valor;
+            
+            if(valor === 'personal') {
+                label.innerHTML = `<i class="fa-solid fa-user text-emerald-400"></i> EPIs Personales`;
+            } else if(valor === 'furgoneta') {
+                label.innerHTML = `<i class="fa-solid fa-truck-ramp-box text-emerald-400"></i> Furgoneta`;
+            } else if(valor === 'grua') {
+                label.innerHTML = `<i class="fa-solid fa-truck-pickup text-emerald-400"></i> Grúa`;
+            } else if(valor === 'herramienta') {
+                label.innerHTML = `<i class="fa-solid fa-wrench text-emerald-400"></i> Herramienta`;
+            }
+
+            // Mostrar/ocultar campos según pestaña
+            const esGrua = valor === 'grua';
+            const esHerramienta = valor === 'herramienta';
+            document.getElementById('campo-sububicacion').classList.toggle('hidden', !esGrua);
+            document.getElementById('campos-no-grua').classList.toggle('hidden', esGrua || esHerramienta);
+            document.getElementById('campos-herramienta').classList.toggle('hidden', !esHerramienta);
+            
+            document.getElementById('options-custom-select').classList.add('hidden');
+            document.getElementById('icon-select-arrow').classList.remove('rotate-180');
+        }
+
+        function establecerEstadoHerramienta(valor) {
+            const campo = document.getElementById('form-estado-herr');
+            if (!campo) return;
+            campo.value = valor;
+
+            const cfg = {
+                ok:          { id: 'herrbtn-ok',          cls: 'bg-emerald-700 border-emerald-500 text-white' },
+                deteriorado: { id: 'herrBtn-deteriorado',  cls: 'bg-orange-700 border-orange-500 text-white'  },
+                falta:       { id: 'herrBtn-falta',        cls: 'bg-red-800 border-red-500 text-white'        }
+            };
+            const base = 'py-2.5 text-xs font-bold rounded-xl border transition-all flex flex-col items-center gap-1 ';
+            const inactivo = 'bg-slate-950 border-slate-600 text-slate-400';
+
+            Object.entries(cfg).forEach(([key, { id, cls }]) => {
+                const btn = document.getElementById(id);
+                if (btn) btn.className = base + (key === valor ? cls : inactivo);
+            });
+        }
+
+        function seleccionarFalta(valor) {
+            // form-falta ya no existe, establecerEstadoHerramienta es el que maneja el estado
+            establecerEstadoHerramienta(valor === 'FALTA' || valor === 'falta' ? 'falta' : 'ok');
+        }
+
+        function seleccionarSububicacion(valor) {
+            document.getElementById('form-sububicacion').value = valor;
+            const botones = ['multi', 'generador', 'corona'];
+            botones.forEach(b => {
+                const btn = document.getElementById('subbtn-' + b);
+                if (b === valor) {
+                    btn.className = "flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-700 border-emerald-500 text-emerald-400";
+                } else {
+                    btn.className = "flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200";
+                }
+            });
+        }
+
+        window.addEventListener('click', function(e) {
+            const btn = document.getElementById('btn-custom-select');
+            const menu = document.getElementById('options-custom-select');
+            if (btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add('hidden');
+                document.getElementById('icon-select-arrow').classList.remove('rotate-180');
+            }
+        });
+
+        function importarDesdeExcel(e) {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+
+            // Límite de tamaño: 5 MB
+            if (archivo.size > 5 * 1024 * 1024) {
+                alert("El archivo es demasiado grande (máx. 5 MB).");
+                document.getElementById('excel-file-input').value = "";
+                return;
+            }
+
+            const lector = new FileReader();
+            lector.onload = function(evento) {
+                try {
+                    const datos = new Uint8Array(evento.target.result);
+                    const libro = XLSX.read(datos, { type: 'array' });
+                    const primeraPestana = libro.SheetNames[0];
+                    const hoja = libro.Sheets[primeraPestana];
+                    const filasJson = XLSX.utils.sheet_to_json(hoja);
+
+                    if (filasJson.length === 0) {
+                        alert("El archivo Excel está vacío.");
+                        return;
+                    }
+
+                    if (!Object.prototype.hasOwnProperty.call(filasJson[0], 'equipo')) {
+                        alert("Error: El Excel no tiene la columna 'equipo'.");
+                        return;
+                    }
+
+                    if (confirm(`Se han detectado ${filasJson.length} equipos en el Excel. ¿Deseas importarlos y reemplazar la lista actual?`)) {
+                        const importados = filasJson.map((fila, index) => {
+                            let ub = String(fila.ubicacion || "").trim().toLowerCase();
+                            if (!UBICACIONES_VALIDAS.includes(ub)) ub = 'personal';
+                            let sub = String(fila.sububicacion || "").trim().toLowerCase();
+                            if (!['multi','generador','corona'].includes(sub)) sub = '';
+
+                            return sanitizarItem({
+                                id: "MAT-EXCEL-" + Date.now() + "-" + index,
+                                equipo:   fila.equipo,
+                                marca:    fila.marca,
+                                modelo:   fila.modelo,
+                                serie:    fila.serie,
+                                codigo:   fila.codigo,
+                                revision: fila.revision,
+                                proxima:  fila.proxima,
+                                estado:   fila.estado,
+                                ubicacion: ub,
+                                sububicacion: sub
+                            });
+                        }).filter(Boolean);
+
+                        inventario = importados;
+                        guardarEnLocalStorage();
+                        toggleSidebar(false);
+                        renderApp();
+                        alert("¡Excel importado con éxito! 🎉");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Ocurrió un error leyendo el archivo.");
+                }
+                document.getElementById('excel-file-input').value = "";
+            };
+            lector.readAsArrayBuffer(archivo);
+        }
+
+        function forzarReinicioCompleto() {
+            if(confirm("¿Quieres limpiar la memoria y volver a los datos originales de fábrica?\n\nSe perderán todos los cambios realizados.")) {
+                const combined = [...inventarioBase];
+                const nombresExistentes = new Set(combined.map(x => x.equipo.trim().toLowerCase()));
+                for (const h of herramientasBase) {
+                    if (!nombresExistentes.has(h.equipo.trim().toLowerCase())) {
+                        combined.push(h);
+                        nombresExistentes.add(h.equipo.trim().toLowerCase());
+                    }
+                }
+                inventario = combined;
+                guardarEnLocalStorage();
+                toggleSidebar(false);
+                cambiarPestana('personal');
+            }
+        }
+
+        function calcularEstado(item) {
+            const prox = (item.proxima || "").trim().toLowerCase();
+            
+            if (prox.includes("no necesita") || prox.includes("aprecia") || prox.includes("n/a") || prox === "" || prox === "-") {
+                return 'ok';
+            }
+
+            let limpia = prox.replace(/\//g, '-');
+            let partes = limpia.split('-');
+            
+            if (partes.length !== 3) return 'ok';
+
+            let fechaProx;
+            if (partes[0].length === 4) {
+                fechaProx = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+            } else {
+                fechaProx = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+            }
+
+            if (isNaN(fechaProx.getTime())) return 'ok';
+
+            const hoy = new Date(); 
+            hoy.setHours(0, 0, 0, 0);
+            fechaProx.setHours(0, 0, 0, 0);
+
+            if (fechaProx < hoy) {
+                return 'vencido';
+            }
+
+            const diffTiempo = fechaProx - hoy;
+            const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
+
+            if (diffDias <= 60) {
+                return 'proximo';
+            }
+
+            return 'ok';
+        }
+
+        function renderApp() {
+            const listContainer = document.getElementById('material-list');
+            const searchStr = document.getElementById('search-input').value.toLowerCase();
+            listContainer.innerHTML = '';
+
+            // Build herramienta category tabs with icons
+            if (pestanaActual === 'herramienta') {
+                const chipsContainer = document.getElementById('herramienta-chips');
+                const categorias = [...new Set(
+                    inventario.filter(x => x.ubicacion === 'herramienta' && x.sububicacion)
+                              .map(x => x.sububicacion)
+                )].sort();
+
+                const iconMap = {
+                    'ALICATES':                              { icon: 'fa-grip-lines',          label: 'Alicates'      },
+                    'ALLEN':                                 { icon: 'fa-wrench',               label: 'Allen'         },
+                    'BOMBAS DE ENGRASE':                     { icon: 'fa-droplet',              label: 'Bombas'        },
+                    'CARRACA':                               { icon: 'fa-rotate-right',         label: 'Carraca'       },
+                    'CHICHARRAS Y VASOS':                    { icon: 'fa-circle-dot',           label: 'Chicharras'    },
+                    'CINCELES Y BOTADORES':                  { icon: 'fa-minus',                label: 'Cinceles'      },
+                    'DESTORNILLADORES':                      { icon: 'fa-screwdriver',          label: 'Destornill.'   },
+                    'DINAMOMETRICA':                         { icon: 'fa-gauge-high',           label: 'Dinamom.'      },
+                    'ESPATULA Y BROCHA':                     { icon: 'fa-paintbrush',           label: 'Espátulas'     },
+                    'GENERAL':                               { icon: 'fa-toolbox',              label: 'General'       },
+                    'HERRAMIENTA ELECTRICA/BATERIA/COMPONENTES': { icon: 'fa-bolt',            label: 'Eléctrica'     },
+                    'IMPACTO':                               { icon: 'fa-explosion',            label: 'Impacto'       },
+                    'INSTRUMENTACIÓN':                       { icon: 'fa-ruler-combined',       label: 'Instrument.'   },
+                    'LIMAS':                                 { icon: 'fa-file-lines',           label: 'Limas'         },
+                    'LLAVE COMBINADA/ FIJAS':                { icon: 'fa-wrench',               label: 'Combinada'     },
+                    'LLAVE DE GOLPE':                        { icon: 'fa-hammer',               label: 'Golpe'         },
+                    'LLAVE INGLESA':                         { icon: 'fa-wrench',               label: 'Inglesa'       },
+                    'LLAVE: GRIFA/ TUBO/PIVOTE':             { icon: 'fa-pipe-valve',           label: 'Grifa/Tubo'    },
+                    'MARTILLO Y SARGENTOS':                  { icon: 'fa-hammer',               label: 'Martillo'      },
+                    'SACAS Y ELEVACIÓN':                     { icon: 'fa-up-long',              label: 'Sacas'         },
+                    'TORX':                                  { icon: 'fa-star-of-david',        label: 'Torx'          },
+                    'TRANSPORTE':                            { icon: 'fa-bag-shopping',         label: 'Transporte'    },
+                    'WALKYS':                                { icon: 'fa-walkie-talkie',        label: 'Walkys'        },
+                };
+
+                const currentCats = [...chipsContainer.querySelectorAll('.herr-chip')].map(b => b.dataset.cat);
+                const newCats = ['', ...categorias];
+                if (JSON.stringify(currentCats) !== JSON.stringify(newCats)) {
+                    chipsContainer.innerHTML = newCats.map(cat => {
+                        const activo = cat === categoriaHerramientaActual;
+                        const { icon, label } = cat === '' ? { icon: 'fa-list', label: 'Todas' } : (iconMap[cat] || { icon: 'fa-wrench', label: cat.charAt(0) + cat.slice(1).toLowerCase() });
+                        const cls = activo
+                            ? 'herr-chip flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all bg-slate-800 border-emerald-500 text-emerald-400 shadow-sm min-w-[56px]'
+                            : 'herr-chip flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all bg-slate-900 border-slate-700 text-slate-400 min-w-[56px]';
+                        return `<button onclick="seleccionarCategoriaHerramienta('${cat.replace(/'/g, "\\'")}')" data-cat="${esc(cat)}" class="${cls}">
+                            <i class="fa-solid ${icon} text-base"></i>
+                            <span class="text-[10px] font-bold whitespace-nowrap">${esc(label)}</span>
+                        </button>`;
+                    }).join('');
+                }
+            }
+
+            let cVencido = 0, cProximo = 0, cOk = 0, cFalta = 0, cDeteriorado = 0;
+            let totalFiltradosPestana = 0;
+
+            inventario.forEach(item => {
+                if (!item.ubicacion) item.ubicacion = 'personal';
+
+                const enPestana = item.ubicacion === pestanaActual;
+                const enSubpestana = pestanaActual !== 'grua' || item.sububicacion === sububicacionActual;
+                const enCategoria = pestanaActual !== 'herramienta' || !categoriaHerramientaActual || item.sububicacion === categoriaHerramientaActual;
+
+                if (enPestana && enSubpestana && enCategoria) {
+                    totalFiltradosPestana++;
+                    
+                    const est = calcularEstado(item);
+                    const esFaltaItem       = item.ubicacion === 'herramienta' && item.falta === 'falta';
+                    const esDeterioradoItem = item.ubicacion === 'herramienta' && item.falta === 'deteriorado';
+
+                    if (est === 'vencido') cVencido++;
+                    if (est === 'proximo') cProximo++;
+                    if (est === 'ok' && !esFaltaItem && !esDeterioradoItem) cOk++;
+                    if (esFaltaItem)       cFalta++;
+                    if (esDeterioradoItem) cDeteriorado++;
+
+                    const machtSearch = item.equipo.toLowerCase().includes(searchStr) ||
+                                        item.marca.toLowerCase().includes(searchStr) ||
+                                        item.serie.toLowerCase().includes(searchStr) ||
+                                        item.codigo.toLowerCase().includes(searchStr);
+
+                    const matchFiltro = !filtroEstadoActual
+                        || (filtroEstadoActual === 'falta'       && esFaltaItem)
+                        || (filtroEstadoActual === 'deteriorado' && esDeterioradoItem)
+                        || (filtroEstadoActual !== 'falta' && filtroEstadoActual !== 'deteriorado' && est === filtroEstadoActual && !esFaltaItem && !esDeterioradoItem);
+
+                    if (machtSearch && matchFiltro) {
+                        let colorBorde = 'border-l-emerald-500';
+                        let badgeEst = '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md">AL DÍA</span>';
+                        
+                        if (est === 'vencido') {
+                            colorBorde = 'border-l-red-500';
+                            badgeEst = '<span class="bg-red-950 text-red-400 border border-red-800 text-[10px] font-bold px-2 py-0.5 rounded-md">VENCIDO</span>';
+                        } else if (est === 'proximo') {
+                            colorBorde = 'border-l-amber-500';
+                            badgeEst = '<span class="bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md">PRÓXIMO</span>';
+                        }
+
+                        // Herramienta: falta → rojo, deteriorado → naranja
+                        if (item.ubicacion === 'herramienta') {
+                            if (item.falta === 'falta') {
+                                colorBorde = 'border-l-red-500';
+                                badgeEst = '<span class="bg-red-950 text-red-400 border border-red-800 text-[10px] font-bold px-2 py-0.5 rounded-md">FALTA</span>';
+                            } else if (item.falta === 'deteriorado') {
+                                colorBorde = 'border-l-orange-500';
+                                badgeEst = '<span class="bg-orange-950 text-orange-400 border border-orange-800 text-[10px] font-bold px-2 py-0.5 rounded-md">DETERIORADO</span>';
+                            }
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = `bg-slate-800 border border-slate-700 border-l-4 ${colorBorde} rounded-xl p-4 shadow-sm space-y-2.5`;
+
+                        const subLabels = { multi: 'Multi', generador: 'Generador', corona: 'Corona' };
+                        const subIconsMap = { multi: 'fa-layer-group', generador: 'fa-bolt', corona: 'fa-circle-nodes' };
+                        const subSafe = SUBUBICACIONES_VALIDAS.includes(item.sububicacion) ? item.sububicacion : '';
+
+                        // Badge: grúa uses fixed sub-labels; herramienta uses free-text category
+                        let sububicacionBadge = '';
+                        if (item.ubicacion === 'grua' && subSafe) {
+                            sububicacionBadge = `<span class="inline-flex items-center gap-1 bg-slate-700 border border-slate-600 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md"><i class="fa-solid ${subIconsMap[subSafe]}"></i> ${subLabels[subSafe]}</span>`;
+                        } else if (item.ubicacion === 'herramienta' && item.sububicacion) {
+                            sububicacionBadge = `<span class="inline-flex items-center gap-1 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-tag"></i> ${esc(item.sububicacion)}</span>`;
+                        }
+
+                        const infoGrid = item.ubicacion === 'grua'
+                            ? `<div class="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs border-t border-slate-700/60 pt-2.5">
+                                <div><span class="text-slate-400">Código:</span> <span class="text-slate-200 font-mono">${esc(item.codigo) || '-'}</span></div>
+                                ${sububicacionBadge ? `<div>${sububicacionBadge}</div>` : '<div></div>'}
+                               </div>`
+                            : item.ubicacion === 'herramienta'
+                            ? (() => {
+                                const faltaBadge = item.falta === 'falta'
+                                    ? `<span class="inline-flex items-center gap-1 bg-red-900/50 border border-red-600 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-triangle-exclamation"></i> FALTA</span>`
+                                    : item.falta === 'deteriorado'
+                                    ? `<span class="inline-flex items-center gap-1 bg-orange-900/50 border border-orange-600 text-orange-300 text-[10px] font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-screwdriver-wrench"></i> DETERIORADO</span>`
+                                    : `<span class="inline-flex items-center gap-1 bg-emerald-900/40 border border-emerald-700 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-check"></i> OK</span>`;
+                                return `<div class="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs border-t border-slate-700/60 pt-2.5">
+                                    <div><span class="text-slate-400">Debe haber:</span> <span class="text-slate-200 font-bold">${esc(item.debeHaber || '1')}</span></div>
+                                    <div>${faltaBadge}</div>
+                                    ${sububicacionBadge ? `<div class="col-span-2">${sububicacionBadge}</div>` : ''}
+                                   </div>`;
+                              })()
+                            : `<div class="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs border-t border-slate-700/60 pt-2.5">
+                                <div><span class="text-slate-400">Nº Serie:</span> <span class="font-mono text-slate-200">${esc(item.serie)}</span></div>
+                                <div><span class="text-slate-400">Código:</span> <span class="text-slate-200 font-mono">${esc(item.codigo) || '-'}</span></div>
+                                <div><span class="text-slate-400">Última Rev:</span> <span class="text-slate-300">${esc(item.revision)}</span></div>
+                                <div><span class="text-slate-400">Próxima Rev:</span> <span class="text-slate-300 font-semibold">${esc(item.proxima)}</span></div>
+                               </div>`;
+
+                        // IDs almacenados en data-attribute, nunca en onclick inline
+                        card.dataset.itemId = item.id;
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-slate-100 text-base">${esc(item.equipo)}</h3>
+                                    <p class="text-xs text-slate-400">${esc(item.marca)}${item.modelo ? ' • ' + esc(item.modelo) : ''}</p>
+                                </div>
+                                ${badgeEst}
+                            </div>
+                            
+                            ${infoGrid}
+
+                            <div class="bg-slate-900/50 rounded-lg p-2 text-xs text-slate-300 italic border border-slate-700/30">
+                                <span class="font-semibold text-slate-400 not-italic">Estado:</span> ${esc(item.estado)}
+                            </div>
+
+                            <div class="flex justify-between gap-2 pt-1 border-t border-slate-700/40">
+                                <button data-action="eliminar" class="text-red-400 hover:text-red-300 p-1 text-sm">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                                <div class="flex gap-2">
+                                    <button data-action="editar" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                                        <i class="fa-solid fa-pen-to-square text-sky-400"></i> Editar
+                                    </button>
+                                    <button data-action="renovar" class="bg-slate-700 hover:bg-emerald-700 text-slate-200 font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+                                        <i class="fa-solid fa-calendar-check text-emerald-400"></i> Inspección OK
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        listContainer.appendChild(card);
+                    }
+                }
+            });
+
+            document.getElementById('count-stat-1').innerText = pestanaActual === 'herramienta' ? cFalta      : cVencido;
+            document.getElementById('count-stat-2').innerText = pestanaActual === 'herramienta' ? cDeteriorado : cProximo;
+            document.getElementById('count-stat-3').innerText = cOk;
+            document.getElementById('badge-total').innerText  = `${totalFiltradosPestana} Equipos`;
+
+            // Swap card styles and labels based on tab
+            const esHerr = pestanaActual === 'herramienta';
+            const grid   = document.getElementById('stats-grid');
+            grid.className = 'grid grid-cols-3 gap-2 mb-4';
+
+            const card1  = document.getElementById('card-stat-1');
+            const card2  = document.getElementById('card-stat-2');
+            const cnt1   = document.getElementById('count-stat-1');
+            const cnt2   = document.getElementById('count-stat-2');
+            const lbl1   = document.getElementById('label-stat-1');
+            const lbl2   = document.getElementById('label-stat-2');
+
+            if (esHerr) {
+                card1.onclick = () => filtrarEstado('falta');
+                card1.className = 'cursor-pointer bg-red-950/40 border border-red-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform';
+                cnt1.className  = 'font-black text-lg text-red-400';
+                lbl1.className  = 'text-[10px] uppercase font-bold tracking-wider text-red-300';
+                lbl1.innerText  = 'Falta';
+
+                card2.onclick = () => filtrarEstado('deteriorado');
+                card2.className = 'cursor-pointer bg-orange-950/40 border border-orange-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform';
+                cnt2.className  = 'font-black text-lg text-orange-400';
+                lbl2.className  = 'text-[10px] uppercase font-bold tracking-wider text-orange-300';
+                lbl2.innerText  = 'Deteriorados';
+            } else {
+                card1.onclick = () => filtrarEstado('vencido');
+                card1.className = 'cursor-pointer bg-red-950/40 border border-red-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform';
+                cnt1.className  = 'font-black text-lg text-red-400';
+                lbl1.className  = 'text-[10px] uppercase font-bold tracking-wider text-red-300';
+                lbl1.innerText  = 'Vencidos';
+
+                card2.onclick = () => filtrarEstado('proximo');
+                card2.className = 'cursor-pointer bg-amber-950/40 border border-amber-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform';
+                cnt2.className  = 'font-black text-lg text-amber-400';
+                lbl2.className  = 'text-[10px] uppercase font-bold tracking-wider text-amber-300';
+                lbl2.innerText  = 'Próximos';
+            }
+        }
+
+        function filtrarEstado(estado) {
+            filtroEstadoActual = estado;
+            const banner = document.getElementById('active-filter-banner');
+            const txt = document.getElementById('filter-text');
+            txt.innerText = estado === 'ok' ? 'Al día' : estado === 'proximo' ? 'Próximos' : estado === 'falta' ? 'Falta' : estado === 'deteriorado' ? 'Deteriorados' : 'Vencidos';
+            banner.classList.replace('hidden', 'flex');
+            renderApp();
+        }
+
+        function limpiarFiltros() {
+            filtroEstadoActual = null;
+            document.getElementById('active-filter-banner').classList.replace('flex', 'hidden');
+            renderApp();
+        }
+
+        function renovarRevision(id) {
+            const index = inventario.findIndex(x => x.id === id);
+            if (index !== -1) {
+                const hoy = new Date();
+                const dd = String(hoy.getDate()).padStart(2, '0');
+                const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                const yyyy = hoy.getFullYear();
+
+                inventario[index].revision = `${dd}-${mm}-${yyyy}`;
+                inventario[index].proxima = `${dd}-${mm}-${yyyy + 1}`;
+                inventario[index].estado = "Buen estado";
+
+                guardarEnLocalStorage();
+                renderApp();
+            }
+        }
+
+        function abrirModalFormulario() {
+            document.getElementById('modal-title').innerText = "Registrar Nuevo Equipo";
+            document.getElementById('form-id').value = "";
+            document.getElementById('form-equipo').value = "";
+            document.getElementById('form-marca').value = "";
+            document.getElementById('form-modelo').value = "";
+            document.getElementById('form-serie').value = "S/N";
+            document.getElementById('form-codigo').value = "";
+            document.getElementById('form-revision').value = "";
+            document.getElementById('form-proxima').value = "";
+            document.getElementById('form-estado').value = "Buen estado";
+            document.getElementById('form-sububicacion').value = "";
+            document.getElementById('form-debe-haber').value = "1";
+            // Reset sububicacion buttons
+            ['multi','generador','corona'].forEach(b => {
+                document.getElementById('subbtn-' + b).className = "flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200";
+            });
+
+            // Primero mostrar/ocultar campos, LUEGO aplicar estado visual
+            seleccionarOpcionCustom(pestanaActual);
+            seleccionarFalta('OK');
+            const campoHerr = document.getElementById('form-estado-herr');
+            if (campoHerr) campoHerr.value = 'ok';
+            establecerEstadoHerramienta('ok');
+            if (pestanaActual === 'grua') {
+                seleccionarSububicacion(sububicacionActual);
+            }
+
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal-overlay').classList.add('opacity-100');
+                document.getElementById('modal-form').classList.replace('translate-y-full', 'translate-y-0');
+            }, 10);
+        }
+
+        function editarMaterial(id) {
+            const item = inventario.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-title').innerText = "Editar Especificaciones";
+            document.getElementById('form-id').value = item.id;
+            document.getElementById('form-equipo').value = item.equipo;
+            document.getElementById('form-marca').value = item.marca;
+            document.getElementById('form-modelo').value = item.modelo;
+            document.getElementById('form-serie').value = item.serie;
+            document.getElementById('form-codigo').value = item.codigo;
+            document.getElementById('form-revision').value = item.revision;
+            document.getElementById('form-proxima').value = item.proxima;
+            document.getElementById('form-estado').value = item.estado;
+            document.getElementById('form-debe-haber').value = item.debeHaber || '1';
+            const faltaVal = (['ok','falta','deteriorado'].includes(String(item.falta || '').toLowerCase()))
+                ? item.falta.toLowerCase() : 'ok';
+
+            // Primero mostrar campos, luego sincronizar botones
+            seleccionarOpcionCustom(item.ubicacion || 'personal');
+
+            if ((item.ubicacion || 'personal') === 'herramienta') {
+                const campo = document.getElementById('form-estado-herr');
+                if (campo) campo.value = faltaVal;
+                establecerEstadoHerramienta(faltaVal);
+            }
+
+            // Cargar sububicacion si existe
+            const sub = item.sububicacion || '';
+            document.getElementById('form-sububicacion').value = sub;
+            ['multi','generador','corona'].forEach(b => {
+                const btn = document.getElementById('subbtn-' + b);
+                btn.className = b === sub
+                    ? "flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-700 border-emerald-500 text-emerald-400"
+                    : "flex-1 py-2 text-xs font-bold rounded-lg border transition-all bg-slate-950 border-slate-600 text-slate-400 hover:text-slate-200";
+            });
+
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal-overlay').classList.add('opacity-100');
+                document.getElementById('modal-form').classList.replace('translate-y-full', 'translate-y-0');
+            }, 10);
+        }
+
+        function cerrarModalFormulario() {
+            document.getElementById('modal-overlay').classList.remove('opacity-100');
+            document.getElementById('modal-form').classList.replace('translate-y-0', 'translate-y-full');
+            document.getElementById('options-custom-select').classList.add('hidden');
+            document.getElementById('icon-select-arrow').classList.remove('rotate-180');
+            setTimeout(() => document.getElementById('modal-overlay').classList.add('hidden'), 300);
+        }
+
+        function guardarFormulario() {
+            const id = document.getElementById('form-id').value;
+            const equipo = document.getElementById('form-equipo').value.trim();
+            if (!equipo) { alert("El nombre del equipo es obligatorio."); return; }
+
+            const ubicacionRaw = document.getElementById('form-ubicacion').value;
+            const ubicacion = UBICACIONES_VALIDAS.includes(ubicacionRaw) ? ubicacionRaw : 'personal';
+
+            const sububicacionRaw = document.getElementById('form-sububicacion').value;
+            const sububicacion = ['multi','generador','corona'].includes(sububicacionRaw) ? sububicacionRaw : '';
+
+            if (ubicacion === 'grua' && !sububicacion) {
+                alert("Selecciona una sububicación para la Grúa (Multi, Generador o Corona)."); return;
+            }
+
+            const datos = {
+                equipo:      equipo.slice(0, 200),
+                marca:       document.getElementById('form-marca').value.trim().slice(0, 100),
+                modelo:      document.getElementById('form-modelo').value.trim().slice(0, 100),
+                serie:       (document.getElementById('form-serie').value.trim() || 'S/N').slice(0, 100),
+                codigo:      document.getElementById('form-codigo').value.trim().slice(0, 100),
+                revision:    (document.getElementById('form-revision').value.trim() || 'N/A').slice(0, 50),
+                proxima:     (document.getElementById('form-proxima').value.trim() || 'N/A').slice(0, 50),
+                estado:      (document.getElementById('form-estado').value.trim() || 'Buen estado').slice(0, 500),
+                ubicacion,
+                sububicacion: ubicacion === 'grua' ? sububicacion : (ubicacion === 'herramienta' ? sububicacionRaw.slice(0,100) : ''),
+                debeHaber:   ubicacion === 'herramienta' ? (document.getElementById('form-debe-haber').value.trim() || '1') : '',
+                falta:       ubicacion === 'herramienta'
+                    ? (() => { const c = document.getElementById('form-estado-herr'); return c ? (c.value || 'ok') : 'ok'; })()
+                    : ''
+            };
+
+            if (id) {
+                const index = inventario.findIndex(x => x.id === id);
+                if (index !== -1) {
+                    inventario[index] = {
+                        id: inventario[index].id,
+                        equipo:       datos.equipo,
+                        marca:        datos.marca,
+                        modelo:       datos.modelo,
+                        serie:        datos.serie,
+                        codigo:       datos.codigo,
+                        revision:     datos.revision,
+                        proxima:      datos.proxima,
+                        estado:       datos.estado,
+                        ubicacion:    datos.ubicacion,
+                        sububicacion: datos.sububicacion,
+                        debeHaber:    datos.debeHaber,
+                        falta:        datos.falta
+                    };
+                }
+            } else {
+                datos.id = "MAT-MANUAL-" + Date.now();
+                inventario.unshift(Object.assign({}, datos));
+            }
+
+            guardarEnLocalStorage();
+            cerrarModalFormulario();
+            if (datos.ubicacion === 'grua') {
+                sububicacionActual = datos.sububicacion || 'multi';
+            }
+            cambiarPestana(datos.ubicacion);
+        }
+
+        function eliminarMaterial(id) {
+            const item = inventario.find(x => x.id === id);
+            if (!item) return;
+            if (confirm(`¿Eliminar por completo "${item.equipo}" del registro?`)) {
+                inventario = inventario.filter(x => x.id !== id);
+                guardarEnLocalStorage();
+                renderApp();
+            }
+        }
+
+        function exportarDatos() {
+            const json = JSON.stringify(inventario);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(json)
+                    .then(() => alert("📋 ¡Historial copiado al portapapeles con éxito!"))
+                    .catch(() => alert("No se pudo copiar automáticamente. Copia manualmente:\n\n" + json));
+            } else {
+                // Fallback para navegadores sin Clipboard API
+                const ta = document.createElement('textarea');
+                ta.value = json;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                try { document.execCommand('copy'); alert("📋 ¡Historial copiado al portapapeles con éxito!"); }
+                catch { alert("Copia manual:\n\n" + json); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        function importarDesdeArchivo(e) {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+            if (archivo.size > 5 * 1024 * 1024) { alert('El archivo es demasiado grande (máx. 5 MB).'); return; }
+            const lector = new FileReader();
+            lector.onload = function(ev) {
+                try {
+                    const parseados = JSON.parse(ev.target.result);
+                    if (!Array.isArray(parseados)) throw new Error('No es un array');
+                    const validos = parseados.map(sanitizarItem).filter(Boolean);
+                    if (validos.length === 0) throw new Error('Ningún item válido');
+                    if (!confirm(`Se encontraron ${validos.length} equipos en el archivo.\n¿Reemplazar los datos actuales?`)) return;
+                    inventario = validos;
+                    guardarEnLocalStorage();
+                    toggleSidebar(false);
+                    renderApp();
+                    alert(`✅ ${validos.length} equipos restaurados correctamente.`);
+                } catch(err) {
+                    alert('Error: El archivo no tiene un formato válido.\nAsegúrate de que es una exportación de EPI-Check.');
+                }
+                document.getElementById('backup-file-input').value = '';
+            };
+            lector.readAsText(archivo);
+        }
+
+        function importarDatos() {
+            const promptDatos = prompt("Pega el texto de tu copia de seguridad aquí:");
+            if (!promptDatos) return;
+            try {
+                const parseados = JSON.parse(promptDatos);
+                if (!Array.isArray(parseados)) throw new Error('No es un array');
+                const validos = parseados.map(sanitizarItem).filter(Boolean);
+                if (validos.length === 0) throw new Error('Ningún item válido');
+                inventario = validos;
+                guardarEnLocalStorage();
+                toggleSidebar(false);
+                renderApp();
+                alert(`✔️ Datos restaurados correctamente. ${validos.length} equipos cargados.`);
+            } catch(e) { alert("Error: El formato de copia de seguridad no es válido."); }
+        }
+
+        document.getElementById('search-input').addEventListener('input', renderApp);
+
+        // Delegación de eventos en las tarjetas — evita onclick inline con IDs
+        document.getElementById('material-list').addEventListener('click', function(e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const card = btn.closest('[data-item-id]');
+            if (!card) return;
+            const id = card.dataset.itemId;
+            const action = btn.dataset.action;
+            if (action === 'eliminar') eliminarMaterial(id);
+            else if (action === 'editar') editarMaterial(id);
+            else if (action === 'renovar') renovarRevision(id);
+        });
+        
+        window.onload = function() {
+            renderApp();
+        };
+        // ── Modal Exportar ──────────────────────────────────────────────────────
+        let exportSeccion = 'todo';
+        let exportFiltro  = 'todas';
+        let exportFormato = 'excel';
+
+        function abrirModalExportar() {
+            toggleSidebar(false);
+            exportSeccion = 'todo';
+            exportFiltro  = 'todas';
+            exportFormato = 'excel';
+            actualizarBotonesExport();
+            // Reset destino buttons
+            document.querySelectorAll('.expd-btn').forEach(b => {
+                b.className = 'expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 '
+                    + (b.dataset.expd === 'excel' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-900 border-slate-600 text-slate-300');
+            });
+            document.getElementById('export-herr-filtro').classList.add('hidden');
+            // Show count immediately
+            actualizarResumenExport();
+            document.getElementById('export-resumen').classList.remove('hidden');
+            document.getElementById('modal-exportar-overlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal-exportar-overlay').classList.add('opacity-100');
+                document.getElementById('modal-exportar').classList.replace('translate-y-full', 'translate-y-0');
+            }, 10);
+        }
+
+        function cerrarModalExportar() {
+            document.getElementById('modal-exportar-overlay').classList.remove('opacity-100');
+            document.getElementById('modal-exportar').classList.replace('translate-y-0', 'translate-y-full');
+            setTimeout(() => document.getElementById('modal-exportar-overlay').classList.add('hidden'), 300);
+        }
+
+        function seleccionarSeccionExport(val) {
+            exportSeccion = val;
+            document.getElementById('export-herr-filtro').classList.toggle('hidden', val !== 'herramienta');
+            actualizarBotonesExport();
+            actualizarResumenExport();
+        }
+
+        function seleccionarFiltroExport(val) {
+            exportFiltro = val;
+            document.querySelectorAll('.expf-btn').forEach(b => {
+                const activo = b.dataset.expf === val;
+                b.className = 'expf-btn py-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 '
+                    + (activo
+                        ? (val === 'falta' ? 'bg-red-800 border-red-500 text-white' : 'bg-emerald-700 border-emerald-500 text-white')
+                        : 'bg-slate-900 border-slate-600 text-slate-400');
+            });
+            actualizarResumenExport();
+        }
+
+        function seleccionarFormatoExport(val) {
+            exportFormato = val;
+            const colores = {
+                excel:     'bg-emerald-700 border-emerald-500 text-white',
+                copiar:    'bg-sky-700 border-sky-500 text-white',
+                descargar: 'bg-slate-600 border-slate-400 text-white'
+            };
+            document.querySelectorAll('.expd-btn').forEach(b => {
+                const activo = b.dataset.expd === val;
+                b.className = 'expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 '
+                    + (activo ? (colores[val] || 'bg-sky-700 border-sky-500 text-white') : 'bg-slate-900 border-slate-600 text-slate-300');
+            });
+            actualizarResumenExport();
+        }
+
+        function actualizarBotonesExport() {
+            document.querySelectorAll('.exp-btn').forEach(b => {
+                const activo = b.dataset.exp === exportSeccion;
+                b.className = 'exp-btn py-2.5 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 '
+                    + (activo ? 'bg-sky-700 border-sky-500 text-white' : 'bg-slate-900 border-slate-600 text-slate-300')
+                    + (b.dataset.exp === 'herramienta' ? ' col-span-2' : '');
+            });
+        }
+
+        function obtenerDatosExport() {
+            let datos = inventario;
+            if (exportSeccion !== 'todo') {
+                datos = datos.filter(x => x.ubicacion === exportSeccion);
+            }
+            if (exportSeccion === 'herramienta' && exportFiltro === 'falta') {
+                datos = datos.filter(x => x.estado && x.estado.toLowerCase().includes('falta'));
+            }
+            return datos;
+        }
+
+        function actualizarResumenExport() {
+            const datos = obtenerDatosExport();
+            const resumen = document.getElementById('export-resumen');
+            const txt = document.getElementById('export-resumen-txt');
+            txt.innerHTML = `<i class="fa-solid fa-circle-info mr-1 text-sky-400"></i> Se exportarán <b class="text-white">${datos.length}</b> equipos`;
+            resumen.classList.remove('hidden');
+        }
+
+        function ejecutarExport() {
+            const datos = obtenerDatosExport();
+            if (datos.length === 0) {
+                alert(`No hay datos con los filtros seleccionados.\n\nTotal en inventario: ${inventario.length} equipos.\n\nSi acabas de abrir el archivo desde Descargas, los datos guardados están en el navegador donde usas la app habitualmente.`);
+                return;
+            }
+
+            const nombreSeccion = { todo:'completo', personal:'personal', furgoneta:'furgoneta', grua:'grua', herramienta:'herramienta' }[exportSeccion] || 'export';
+            const nombreFiltro  = exportFiltro === 'falta' ? '_solo-falta' : '';
+            const fecha         = new Date().toISOString().slice(0,10);
+
+            if (exportFormato === 'excel') {
+                // Columnas legibles según tipo
+                const esHerr = exportSeccion === 'herramienta' || (exportSeccion === 'todo' && datos.some(x => x.ubicacion === 'herramienta'));
+
+                const filas = datos.map(item => {
+                    if (item.ubicacion === 'herramienta') {
+                        return {
+                            'Nombre':        item.equipo,
+                            'Categoría':     item.sububicacion || '',
+                            'Debe haber':    item.debeHaber || '1',
+                            'Estado':        item.falta === 'falta' ? 'FALTA' : item.falta === 'deteriorado' ? 'DETERIORADO' : 'OK',
+                            'Observaciones': item.estado || '',
+                            'Código':        item.codigo || ''
+                        };
+                    } else {
+                        return {
+                            'Nombre':          item.equipo,
+                            'Marca':           item.marca || '',
+                            'Modelo':          item.modelo || '',
+                            'Nº Serie':        item.serie || '',
+                            'Código':          item.codigo || '',
+                            'Última Revisión': item.revision || '',
+                            'Próxima Revisión':item.proxima || '',
+                            'Estado':          item.estado || '',
+                            'Ubicación':       item.ubicacion || ''
+                        };
+                    }
+                });
+
+                const ws   = XLSX.utils.json_to_sheet(filas);
+                const wb   = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+
+                // Auto column width
+                const cols = Object.keys(filas[0] || {});
+                ws['!cols'] = cols.map(c => ({
+                    wch: Math.max(c.length, ...filas.map(r => String(r[c] || '').length), 10)
+                }));
+
+                const nombreArchivo = `epicheck_${nombreSeccion}${nombreFiltro}_${fecha}.xlsx`;
+                XLSX.writeFile(wb, nombreArchivo);
+                cerrarModalExportar();
+                setTimeout(() => alert(`✅ Excel descargado: ${nombreArchivo}\n${datos.length} equipos exportados.\n\nBúscalo en la carpeta Descargas.`), 400);
+
+            } else if (exportFormato === 'descargar') {
+                const json = JSON.stringify(datos, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href = url; a.download = `epicheck_${nombreSeccion}${nombreFiltro}_${fecha}.json`;
+                a.style.display = 'none';
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+                cerrarModalExportar();
+                setTimeout(() => alert(`✅ JSON descargado. ${datos.length} equipos.`), 400);
+
+            } else {
+                const json = JSON.stringify(datos, null, 2);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(json)
+                        .then(() => { cerrarModalExportar(); setTimeout(() => alert(`📋 ${datos.length} equipos copiados al portapapeles.`), 400); })
+                        .catch(() => alert('No se pudo copiar. Inténtalo de nuevo.'));
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = json; ta.style.cssText = 'position:fixed;opacity:0';
+                    document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); cerrarModalExportar(); setTimeout(() => alert(`📋 ${datos.length} equipos copiados.`), 400); }
+                    catch { alert('Copia manual:\n\n' + json); }
+                    document.body.removeChild(ta);
+                }
+            }
+        }
+
+        // ── Notificaciones reales vía Service Worker ────────────────────────────
+        function actualizarBtnNotif() {
+            const txt = document.getElementById('txt-notif');
+            const btn = document.getElementById('btn-notif');
+            if (!txt || !btn) return;
+            if (!('Notification' in window)) {
+                txt.textContent = 'No soportado en este navegador';
+                return;
+            }
+            const perm = Notification.permission;
+            if (perm === 'granted') {
+                txt.textContent = '✅ Notificaciones activas';
+                btn.classList.add('border-emerald-700');
+            } else if (perm === 'denied') {
+                txt.textContent = '🚫 Bloqueadas — actívalas en ajustes del navegador';
+            } else {
+                txt.textContent = '🔔 Activar notificaciones';
+            }
+        }
+
+        async function activarNotificaciones() {
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                mostrarResumenAlertas(); return;
+            }
+            if (Notification.permission === 'denied') {
+                alert('Las notificaciones están bloqueadas.\n\nVe a Chrome → Ajustes del sitio → Notificaciones y actívalas para esta página.'); return;
+            }
+            const perm = await Notification.requestPermission();
+            actualizarBtnNotif();
+            if (perm === 'granted') {
+                lanzarNotificacionesSW();
+            }
+        }
+
+        async function lanzarNotificacionesSW() {
+            if (Notification.permission !== 'granted') return;
+
+            const vencidos = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
+            const proximos  = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'proximo');
+            const faltan    = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
+            const deterior  = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'deteriorado');
+
+            let reg = null;
+            try { reg = await navigator.serviceWorker.ready; } catch {}
+
+            const notify = (title, body, tag) => {
+                if (reg && reg.showNotification) {
+                    reg.showNotification(title, { body, tag, icon: '/epi-check/icon-192.png', badge: '/epi-check/icon-192.png' });
+                } else {
+                    new Notification(title, { body, tag });
+                }
+            };
+
+            if (vencidos.length > 0)
+                notify('⚠️ EPIs Vencidos',
+                    `${vencidos.length} equipo${vencidos.length > 1 ? 's' : ''}: ${vencidos.slice(0,3).map(x => x.equipo).join(', ')}${vencidos.length > 3 ? '...' : ''}`,
+                    'vencidos');
+
+            if (proximos.length > 0)
+                notify('🕐 Revisiones Próximas',
+                    `${proximos.length} equipo${proximos.length > 1 ? 's' : ''}: ${proximos.slice(0,3).map(x => x.equipo).join(', ')}${proximos.length > 3 ? '...' : ''}`,
+                    'proximos');
+
+            if (faltan.length > 0)
+                notify('🔧 Herramientas que Faltan',
+                    `${faltan.length} herramienta${faltan.length > 1 ? 's' : ''}: ${faltan.slice(0,3).map(x => x.equipo).join(', ')}${faltan.length > 3 ? '...' : ''}`,
+                    'faltan');
+
+            if (deterior.length > 0)
+                notify('🛠️ Herramientas Deterioradas',
+                    `${deterior.length} herramienta${deterior.length > 1 ? 's' : ''}: ${deterior.slice(0,3).map(x => x.equipo).join(', ')}${deterior.length > 3 ? '...' : ''}`,
+                    'deterioradas');
+
+            if (vencidos.length + proximos.length + faltan.length + deterior.length === 0)
+                notify('✅ EPI-Check', 'Todo en orden. No hay alertas pendientes.', 'ok');
+        }
+
+        function mostrarResumenAlertas() {
+            const vencidos = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
+            const proximos  = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'proximo');
+            const faltan    = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
+            const deterior  = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'deteriorado');
+
+            let html = '';
+            if (vencidos.length) html += `<div class="mb-3"><div class="text-red-400 font-bold text-xs mb-1">⚠️ VENCIDOS (${vencidos.length})</div>${vencidos.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (proximos.length)  html += `<div class="mb-3"><div class="text-amber-400 font-bold text-xs mb-1">🕐 PRÓXIMOS (${proximos.length})</div>${proximos.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (faltan.length)    html += `<div class="mb-3"><div class="text-red-400 font-bold text-xs mb-1">🔧 FALTA (${faltan.length})</div>${faltan.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (deterior.length)  html += `<div class="mb-3"><div class="text-orange-400 font-bold text-xs mb-1">🛠️ DETERIORADAS (${deterior.length})</div>${deterior.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (!html) html = `<div class="text-center py-8"><i class="fa-solid fa-circle-check text-4xl text-emerald-400 mb-3 block"></i><p class="text-emerald-400 font-bold">Todo en orden</p><p class="text-slate-400 text-xs mt-1">No hay EPIs vencidos ni herramientas en falta.</p></div>`;
+
+            let overlay = document.getElementById('modal-alertas-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'modal-alertas-overlay';
+                overlay.className = 'fixed inset-0 bg-black/70 z-50 flex items-end justify-center';
+                overlay.innerHTML = `<div class="w-full max-w-md bg-slate-800 rounded-t-2xl p-5 shadow-2xl max-h-[80vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-bell mr-2 text-amber-400"></i>Alertas</h2>
+                        <button onclick="document.getElementById('modal-alertas-overlay').remove()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
+                    </div>
+                    <div id="modal-alertas-body" class="overflow-y-auto flex-1"></div>
+                </div>`;
+                document.body.appendChild(overlay);
+            }
+            document.getElementById('modal-alertas-body').innerHTML = html;
+        }
+
+        window.addEventListener('load', () => {
+            actualizarBtnNotif();
+            setTimeout(() => {
+                const hayAlertas = inventario.some(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido')
+                                || inventario.some(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
+                if (hayAlertas) {
+                    if (Notification.permission === 'granted') lanzarNotificacionesSW();
+                    else mostrarResumenAlertas();
+                }
+            }, 1500);
+        });
+
+    </script>
+    <!-- Modal Exportar -->
+    <div id="modal-exportar-overlay" class="fixed inset-0 bg-black/70 z-50 hidden opacity-0 transition-opacity duration-300" onclick="cerrarModalExportar()"></div>
+    <div id="modal-exportar" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-800 rounded-t-2xl z-50 p-5 shadow-2xl translate-y-full transition-transform duration-300">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-download mr-2 text-sky-400"></i>Exportar datos</h2>
+            <button onclick="cerrarModalExportar()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
+        </div>
+
+        <!-- Selector de sección -->
+        <p class="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wide">¿Qué quieres exportar?</p>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <button onclick="seleccionarSeccionExport('todo')" data-exp="todo"
+                class="exp-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-sky-700 border-sky-500 text-white flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-database"></i> Todo
+            </button>
+            <button onclick="seleccionarSeccionExport('personal')" data-exp="personal"
+                class="exp-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-user"></i> EPIs Personal
+            </button>
+            <button onclick="seleccionarSeccionExport('furgoneta')" data-exp="furgoneta"
+                class="exp-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-truck-ramp-box"></i> Furgoneta
+            </button>
+            <button onclick="seleccionarSeccionExport('grua')" data-exp="grua"
+                class="exp-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-truck-pickup"></i> Grúa
+            </button>
+            <button onclick="seleccionarSeccionExport('herramienta')" data-exp="herramienta"
+                class="exp-btn col-span-2 py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-wrench"></i> Herramientas
+            </button>
+        </div>
+
+        <!-- Filtro extra: solo visible cuando se selecciona herramienta -->
+        <div id="export-herr-filtro" class="hidden mb-4">
+            <p class="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wide">¿Qué herramientas?</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="seleccionarFiltroExport('todas')" data-expf="todas"
+                    class="expf-btn py-2 text-xs font-bold rounded-xl border transition-all bg-emerald-700 border-emerald-500 text-white flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-list"></i> Todas
+                </button>
+                <button onclick="seleccionarFiltroExport('falta')" data-expf="falta"
+                    class="expf-btn py-2 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-red-700 text-red-400 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Solo Falta
+                </button>
+            </div>
+        </div>
+
+        <!-- Formato de destino -->
+        <p class="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wide">¿Dónde guardar?</p>
+        <div class="grid grid-cols-3 gap-2 mb-5">
+            <button onclick="seleccionarFormatoExport('excel')" data-expd="excel"
+                class="expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-emerald-700 border-emerald-500 text-white flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-file-excel text-base"></i> Excel
+            </button>
+            <button onclick="seleccionarFormatoExport('copiar')" data-expd="copiar"
+                class="expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-clipboard text-sky-400 text-base"></i> Copia JSON
+            </button>
+            <button onclick="seleccionarFormatoExport('descargar')" data-expd="descargar"
+                class="expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-slate-600 text-slate-300 flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-file-arrow-down text-slate-400 text-base"></i> JSON
+            </button>
+        </div>
+
+        <div id="export-resumen" class="text-center text-xs text-slate-400 mb-3 hidden">
+            <span id="export-resumen-txt"></span>
+        </div>
+
+        <button onclick="ejecutarExport()"
+            class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
+            <i class="fa-solid fa-download"></i> Exportar ahora
+        </button>
+    </div>
+
+</body>
+</html>
