@@ -1,8 +1,8 @@
 const CACHE_NAME = 'epicheck-v1';
 const URLS_TO_CACHE = [
-  '/epi-check/',
-  '/epi-check/index.html',
-  '/epi-check/manifest.json'
+  '/Epick-chek/',
+  '/Epick-chek/index.html',
+  '/Epick-chek/manifest.json'
 ];
 
 // ── Instalación: guarda en caché los archivos principales ──────────────────
@@ -36,10 +36,10 @@ self.addEventListener('push', event => {
   const title = data.title || 'EPI-Check';
   const options = {
     body:    data.body    || 'Tienes alertas pendientes.',
-    icon:    data.icon    || '/epi-check/icon-192.png',
-    badge:   data.badge   || '/epi-check/icon-192.png',
+    icon:    data.icon    || '/Epick-chek/icon-192.png',
+    badge:   data.badge   || '/Epick-chek/icon-192.png',
     tag:     data.tag     || 'epicheck-alert',
-    data:    { url: data.url || '/epi-check/' },
+    data:    { url: data.url || '/Epick-chek/' },
     actions: [
       { action: 'open',    title: 'Ver alertas' },
       { action: 'dismiss', title: 'Ignorar'     }
@@ -56,13 +56,13 @@ self.addEventListener('notificationclick', event => {
 
   const urlToOpen = (event.notification.data && event.notification.data.url)
     ? event.notification.data.url
-    : '/epi-check/';
+    : '/Epick-chek/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       // Si ya hay una ventana abierta, la enfoca
       for (const client of list) {
-        if (client.url.includes('/epi-check/') && 'focus' in client) {
+        if (client.url.includes('/Epick-chek/') && 'focus' in client) {
           return client.focus();
         }
       }
