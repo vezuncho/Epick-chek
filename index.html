@@ -1247,7 +1247,7 @@
                 b.className = 'expd-btn py-2.5 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 '
                     + (b.dataset.expd === 'excel' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-900 border-slate-600 text-slate-300');
             });
-            document.getElementById('export-herr-filtro').classList.add('hidden');
+            document.getElementById('export-herr-filtro').classList.remove('hidden');
             // Show count immediately
             actualizarResumenExport();
             document.getElementById('export-resumen').classList.remove('hidden');
@@ -1266,7 +1266,8 @@
 
         function seleccionarSeccionExport(val) {
             exportSeccion = val;
-            document.getElementById('export-herr-filtro').classList.toggle('hidden', val !== 'herramienta');
+            // Mostrar filtro falta siempre (tiene sentido para herramienta en cualquier sección)
+            document.getElementById('export-herr-filtro').classList.remove('hidden');
             actualizarBotonesExport();
             actualizarResumenExport();
         }
@@ -1309,12 +1310,17 @@
 
         function obtenerDatosExport() {
             let datos = inventario;
+
+            // Filtrar por sección
             if (exportSeccion !== 'todo') {
                 datos = datos.filter(x => x.ubicacion === exportSeccion);
             }
-            if (exportSeccion === 'herramienta' && exportFiltro === 'falta') {
+
+            // Filtrar por estado falta/deteriorado (funciona en cualquier sección)
+            if (exportFiltro === 'falta') {
                 datos = datos.filter(x => x.falta === 'falta' || x.falta === 'deteriorado');
             }
+
             return datos;
         }
 
