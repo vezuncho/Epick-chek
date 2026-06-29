@@ -1316,7 +1316,7 @@
                 datos = datos.filter(x => x.ubicacion === exportSeccion);
             }
 
-            // Filtrar por estado falta/deteriorado (funciona en cualquier sección)
+            // Filtrar por estado falta/deteriorado
             if (exportFiltro === 'falta') {
                 datos = datos.filter(x => x.falta === 'falta' || x.falta === 'deteriorado');
             }
@@ -1328,7 +1328,13 @@
             const datos = obtenerDatosExport();
             const resumen = document.getElementById('export-resumen');
             const txt = document.getElementById('export-resumen-txt');
-            txt.innerHTML = `<i class="fa-solid fa-circle-info mr-1 text-sky-400"></i> Se exportarán <b class="text-white">${datos.length}</b> equipos`;
+
+            // Debug: contar items con falta en inventario total
+            const totalFalta = inventario.filter(x => x.falta === 'falta' || x.falta === 'deteriorado').length;
+            const totalHerr  = inventario.filter(x => x.ubicacion === 'herramienta').length;
+
+            txt.innerHTML = `<i class="fa-solid fa-circle-info mr-1 text-sky-400"></i> Se exportarán <b class="text-white">${datos.length}</b> equipos`
+                + (exportFiltro === 'falta' ? ` <span class="text-slate-500 text-[10px]">(${totalFalta} con falta de ${totalHerr} herramientas)</span>` : '');
             resumen.classList.remove('hidden');
         }
 
