@@ -1,4 +1,4 @@
-const CACHE_NAME = 'epicheck-v1';
+const CACHE_NAME = 'epicheck-v3';
 const URLS_TO_CACHE = [
   '/Epick-chek/',
   '/Epick-chek/index.html',
