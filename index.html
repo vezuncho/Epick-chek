@@ -7,26 +7,17 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
 
     <title>EPI-Check - Control de Inspecciones</title>
 
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M50 22C62 22 72 26 72 26V47.5C72 61 58.5 73.5 50 78C41.5 73.5 28 61 28 47.5V26C28 26 38 22 50 22Z' fill='%231e293b' stroke='%23475569' stroke-width='3'/><circle cx='50' cy='50' r='18' fill='%23022c22' stroke='%23059669' stroke-width='2'/><path d='M43 50L48 55L58 45' stroke='%2310b981' stroke-width='4.5' stroke-linecent='round' stroke-linejoin='round'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M50 22C62 22 72 26 72 26V47.5C72 61 58.5 73.5 50 78C41.5 73.5 28 61 28 47.5V26C28 26 38 22 50 22Z' fill='%231e293b' stroke='%23475569' stroke-width='3'/><circle cx='50' cy='50' r='18' fill='%23022c22' stroke='%23059669' stroke-width='2'/><path d='M43 50L48 55L58 45' stroke='%2310b981' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <link class="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M50 22C62 22 72 26 72 26V47.5C72 61 58.5 73.5 50 78C41.5 73.5 28 61 28 47.5V26C28 26 38 22 50 22Z' fill='%231e293b' stroke='%23475569' stroke-width='3'/><circle cx='50' cy='50' r='18' fill='%23022c22' stroke='%23059669' stroke-width='2'/><path d='M43 50L48 55L58 45' stroke='%2310b981' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('SW registrado:', reg.scope))
-                    .catch(err => console.log('SW error:', err));
-            });
-        }
-    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-24 select-none">
 
@@ -1313,7 +1304,7 @@
                 datos = datos.filter(x => x.ubicacion === exportSeccion);
             }
             if (exportSeccion === 'herramienta' && exportFiltro === 'falta') {
-                datos = datos.filter(x => x.estado && x.estado.toLowerCase().includes('falta'));
+                datos = datos.filter(x => x.falta === 'falta' || x.falta === 'deteriorado');
             }
             return datos;
         }
@@ -1410,122 +1401,78 @@
             }
         }
 
-        // ── Notificaciones reales vía Service Worker ────────────────────────────
+        // ── Resumen de alertas al abrir ─────────────────────────────────────────
         function actualizarBtnNotif() {
             const txt = document.getElementById('txt-notif');
-            const btn = document.getElementById('btn-notif');
-            if (!txt || !btn) return;
-            if (!('Notification' in window)) {
-                txt.textContent = 'No soportado en este navegador';
-                return;
-            }
-            const perm = Notification.permission;
-            if (perm === 'granted') {
-                txt.textContent = '✅ Notificaciones activas';
-                btn.classList.add('border-emerald-700');
-            } else if (perm === 'denied') {
-                txt.textContent = '🚫 Bloqueadas — actívalas en ajustes del navegador';
-            } else {
-                txt.textContent = '🔔 Activar notificaciones';
-            }
+            if (txt) txt.innerHTML = 'Ver resumen de alertas';
         }
 
         async function activarNotificaciones() {
-            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                mostrarResumenAlertas(); return;
-            }
-            if (Notification.permission === 'denied') {
-                alert('Las notificaciones están bloqueadas.\n\nVe a Chrome → Ajustes del sitio → Notificaciones y actívalas para esta página.'); return;
-            }
-            const perm = await Notification.requestPermission();
-            actualizarBtnNotif();
-            if (perm === 'granted') {
-                lanzarNotificacionesSW();
-            }
-        }
-
-        async function lanzarNotificacionesSW() {
-            if (Notification.permission !== 'granted') return;
-
-            const vencidos = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
-            const proximos  = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'proximo');
-            const faltan    = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
-            const deterior  = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'deteriorado');
-
-            let reg = null;
-            try { reg = await navigator.serviceWorker.ready; } catch {}
-
-            const notify = (title, body, tag) => {
-                if (reg && reg.showNotification) {
-                    reg.showNotification(title, { body, tag, icon: '/Epick-chek/icon-192.png', badge: '/Epick-chek/icon-192.png' });
-                } else {
-                    new Notification(title, { body, tag });
-                }
-            };
-
-            if (vencidos.length > 0)
-                notify('⚠️ EPIs Vencidos',
-                    `${vencidos.length} equipo${vencidos.length > 1 ? 's' : ''}: ${vencidos.slice(0,3).map(x => x.equipo).join(', ')}${vencidos.length > 3 ? '...' : ''}`,
-                    'vencidos');
-
-            if (proximos.length > 0)
-                notify('🕐 Revisiones Próximas',
-                    `${proximos.length} equipo${proximos.length > 1 ? 's' : ''}: ${proximos.slice(0,3).map(x => x.equipo).join(', ')}${proximos.length > 3 ? '...' : ''}`,
-                    'proximos');
-
-            if (faltan.length > 0)
-                notify('🔧 Herramientas que Faltan',
-                    `${faltan.length} herramienta${faltan.length > 1 ? 's' : ''}: ${faltan.slice(0,3).map(x => x.equipo).join(', ')}${faltan.length > 3 ? '...' : ''}`,
-                    'faltan');
-
-            if (deterior.length > 0)
-                notify('🛠️ Herramientas Deterioradas',
-                    `${deterior.length} herramienta${deterior.length > 1 ? 's' : ''}: ${deterior.slice(0,3).map(x => x.equipo).join(', ')}${deterior.length > 3 ? '...' : ''}`,
-                    'deterioradas');
-
-            if (vencidos.length + proximos.length + faltan.length + deterior.length === 0)
-                notify('✅ EPI-Check', 'Todo en orden. No hay alertas pendientes.', 'ok');
+            mostrarResumenAlertas();
         }
 
         function mostrarResumenAlertas() {
-            const vencidos = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
+            const vencidos  = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
             const proximos  = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'proximo');
             const faltan    = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
             const deterior  = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'deteriorado');
 
-            let html = '';
-            if (vencidos.length) html += `<div class="mb-3"><div class="text-red-400 font-bold text-xs mb-1">⚠️ VENCIDOS (${vencidos.length})</div>${vencidos.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
-            if (proximos.length)  html += `<div class="mb-3"><div class="text-amber-400 font-bold text-xs mb-1">🕐 PRÓXIMOS (${proximos.length})</div>${proximos.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
-            if (faltan.length)    html += `<div class="mb-3"><div class="text-red-400 font-bold text-xs mb-1">🔧 FALTA (${faltan.length})</div>${faltan.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
-            if (deterior.length)  html += `<div class="mb-3"><div class="text-orange-400 font-bold text-xs mb-1">🛠️ DETERIORADAS (${deterior.length})</div>${deterior.map(x=>`<div class="text-slate-300 text-xs pl-2 py-0.5">• ${esc(x.equipo)}</div>`).join('')}</div>`;
-            if (!html) html = `<div class="text-center py-8"><i class="fa-solid fa-circle-check text-4xl text-emerald-400 mb-3 block"></i><p class="text-emerald-400 font-bold">Todo en orden</p><p class="text-slate-400 text-xs mt-1">No hay EPIs vencidos ni herramientas en falta.</p></div>`;
+            const total = vencidos.length + proximos.length + faltan.length + deterior.length;
 
-            let overlay = document.getElementById('modal-alertas-overlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'modal-alertas-overlay';
-                overlay.className = 'fixed inset-0 bg-black/70 z-50 flex items-end justify-center';
-                overlay.innerHTML = `<div class="w-full max-w-md bg-slate-800 rounded-t-2xl p-5 shadow-2xl max-h-[80vh] flex flex-col">
-                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                        <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-bell mr-2 text-amber-400"></i>Alertas</h2>
-                        <button onclick="document.getElementById('modal-alertas-overlay').remove()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
-                    </div>
-                    <div id="modal-alertas-body" class="overflow-y-auto flex-1"></div>
-                </div>`;
-                document.body.appendChild(overlay);
+            if (total === 0) {
+                mostrarBannerAlerta(null);
+                return;
             }
-            document.getElementById('modal-alertas-body').innerHTML = html;
+
+            let html = '';
+            if (vencidos.length)
+                html += `<div class="mb-2"><div class="text-red-400 font-bold text-xs mb-1">⚠️ VENCIDOS (${vencidos.length})</div>${vencidos.map(x => `<div class="text-slate-300 text-xs pl-2">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (proximos.length)
+                html += `<div class="mb-2"><div class="text-amber-400 font-bold text-xs mb-1">🕐 PRÓXIMOS (${proximos.length})</div>${proximos.map(x => `<div class="text-slate-300 text-xs pl-2">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (faltan.length)
+                html += `<div class="mb-2"><div class="text-red-400 font-bold text-xs mb-1">🔧 HERRAMIENTAS FALTA (${faltan.length})</div>${faltan.map(x => `<div class="text-slate-300 text-xs pl-2">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+            if (deterior.length)
+                html += `<div class="mb-2"><div class="text-orange-400 font-bold text-xs mb-1">🛠️ DETERIORADAS (${deterior.length})</div>${deterior.map(x => `<div class="text-slate-300 text-xs pl-2">• ${esc(x.equipo)}</div>`).join('')}</div>`;
+
+            mostrarBannerAlerta(html, total);
         }
 
+        function mostrarBannerAlerta(html, total) {
+            let modal = document.getElementById('modal-alertas');
+            if (!modal) {
+                const overlay = document.createElement('div');
+                overlay.id = 'modal-alertas-overlay';
+                overlay.className = 'fixed inset-0 bg-black/70 z-50 flex items-end justify-center';
+                overlay.innerHTML = `
+                    <div id="modal-alertas" class="w-full max-w-md bg-slate-800 rounded-t-2xl p-5 shadow-2xl max-h-[80vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                            <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-bell mr-2 text-amber-400"></i>Resumen de alertas</h2>
+                            <button onclick="document.getElementById('modal-alertas-overlay').remove()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
+                        </div>
+                        <div id="modal-alertas-body" class="overflow-y-auto flex-1"></div>
+                    </div>`;
+                document.body.appendChild(overlay);
+            }
+
+            const body = document.getElementById('modal-alertas-body');
+            if (!html) {
+                body.innerHTML = `<div class="text-center py-8">
+                    <i class="fa-solid fa-circle-check text-4xl text-emerald-400 mb-3 block"></i>
+                    <p class="text-emerald-400 font-bold">Todo en orden</p>
+                    <p class="text-slate-400 text-xs mt-1">No hay EPIs vencidos ni herramientas en falta.</p>
+                </div>`;
+            } else {
+                body.innerHTML = html;
+            }
+        }
+
+        // Mostrar resumen automáticamente al cargar si hay alertas
         window.addEventListener('load', () => {
             actualizarBtnNotif();
             setTimeout(() => {
-                const hayAlertas = inventario.some(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido')
-                                || inventario.some(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
-                if (hayAlertas) {
-                    if (Notification.permission === 'granted') lanzarNotificacionesSW();
-                    else mostrarResumenAlertas();
-                }
+                const vencidos = inventario.filter(x => x.ubicacion !== 'herramienta' && calcularEstado(x) === 'vencido');
+                const faltan   = inventario.filter(x => x.ubicacion === 'herramienta' && x.falta === 'falta');
+                if (vencidos.length > 0 || faltan.length > 0) mostrarResumenAlertas();
             }, 1500);
         });
 
@@ -1573,7 +1520,7 @@
                 </button>
                 <button onclick="seleccionarFiltroExport('falta')" data-expf="falta"
                     class="expf-btn py-2 text-xs font-bold rounded-xl border transition-all bg-slate-900 border-red-700 text-red-400 flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Solo Falta
+                    <i class="fa-solid fa-triangle-exclamation"></i> Falta / Deteriorado
                 </button>
             </div>
         </div>
