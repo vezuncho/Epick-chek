@@ -1313,7 +1313,7 @@
                 datos = datos.filter(x => x.ubicacion === exportSeccion);
             }
             if (exportSeccion === 'herramienta' && exportFiltro === 'falta') {
-                datos = datos.filter(x => x.estado && x.estado.toLowerCase().includes('falta'));
+                datos = datos.filter(x => x.falta === 'falta' || x.falta === 'deteriorado');
             }
             return datos;
         }
