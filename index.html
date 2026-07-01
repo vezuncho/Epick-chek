@@ -122,6 +122,27 @@
             <button onclick="limpiarFiltros()" class="text-slate-400 hover:text-white font-bold underline">Quitar filtro</button>
         </div>
 
+        <!-- Tarjeta vehículo — solo visible en pestaña Furgoneta -->
+        <div id="tarjeta-vehiculo" class="hidden mb-4 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center px-4 py-3 bg-slate-750 border-b border-slate-700">
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-truck-ramp-box text-sky-400"></i> Datos del Vehículo
+                </h3>
+                <button onclick="abrirModalVehiculo()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-sky-400 text-xs"></i> Editar
+                </button>
+            </div>
+            <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs" id="vehiculo-info">
+                <div><span class="text-slate-400">Matrícula:</span> <span class="text-slate-100 font-bold" id="v-matricula">—</span></div>
+                <div><span class="text-slate-400">Marca / Modelo:</span> <span class="text-slate-100" id="v-marca-modelo">—</span></div>
+                <div><span class="text-slate-400">Kilómetros:</span> <span class="text-slate-100 font-mono" id="v-km">—</span></div>
+                <div><span class="text-slate-400">Último aceite:</span> <span class="text-slate-100" id="v-aceite">—</span></div>
+                <div><span class="text-slate-400">Próximo aceite:</span> <span class="text-amber-400 font-semibold" id="v-proximo-aceite">—</span></div>
+                <div><span class="text-slate-400">Nº Chasis:</span> <span class="text-slate-300 font-mono text-[10px]" id="v-chasis">—</span></div>
+                <div class="col-span-2"><span class="text-slate-400">Observaciones:</span> <span class="text-slate-300 italic" id="v-obs">—</span></div>
+            </div>
+        </div>
+
         <button onclick="abrirModalFormulario()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold py-3 px-4 rounded-xl shadow-md mb-5 flex items-center justify-center gap-2 transition-all">
             <i class="fa-solid fa-plus"></i> Registrar Nuevo Equipo / EPI
         </button>
@@ -429,15 +450,21 @@
             }
             inventario = combined;
             localStorage.setItem('app_epicheck_pestanas_ordenadas', JSON.stringify(inventario));
+            localStorage.setItem('app_epicheck_deleted_ids', JSON.stringify([]));
         } else {
-            // Ya hay datos guardados: SOLO añadir items nuevos que no existan por ID
-            // NUNCA sobreescribir items existentes (preserva cambios del usuario)
+            // Ya hay datos: NUNCA sobreescribir, NUNCA re-añadir borrados
+            let deletedIds = [];
+            try { deletedIds = JSON.parse(localStorage.getItem('app_epicheck_deleted_ids') || '[]'); } catch {}
+            const deletedSet = new Set(deletedIds);
+
             const idsExistentes = new Set(inventario.map(x => x.id));
             const nombresExistentes = new Set(inventario.map(x => x.equipo.trim().toLowerCase()));
             let added = 0;
             const todosLosBase = [...inventarioBase, ...herramientasBase];
             for (const item of todosLosBase) {
-                if (!idsExistentes.has(item.id) && !nombresExistentes.has(item.equipo.trim().toLowerCase())) {
+                if (!idsExistentes.has(item.id)
+                    && !nombresExistentes.has(item.equipo.trim().toLowerCase())
+                    && !deletedSet.has(item.id)) {
                     inventario.push(item);
                     idsExistentes.add(item.id);
                     nombresExistentes.add(item.equipo.trim().toLowerCase());
@@ -446,6 +473,19 @@
             }
             if (added > 0) localStorage.setItem('app_epicheck_pestanas_ordenadas', JSON.stringify(inventario));
         }
+
+        // Datos del vehículo (furgoneta)
+        function cargarDatosVehiculo() {
+            try { return JSON.parse(localStorage.getItem('app_epicheck_vehiculo') || 'null'); } catch { return null; }
+        }
+        function guardarDatosVehiculo(datos) {
+            localStorage.setItem('app_epicheck_vehiculo', JSON.stringify(datos));
+        }
+        let datosVehiculo = cargarDatosVehiculo() || {
+            matricula: '', marca: '', modelo: '', anio: '',
+            chasis: '', kmActuales: '', ultimoCambioAceite: '',
+            proximoAceite: '', observaciones: ''
+        };
         
         let filtroEstadoActual = null;
         let pestanaActual = 'personal';
@@ -493,6 +533,12 @@
                 subtabs.classList.add('hidden');
                 if (filtroCategoria) filtroCategoria.classList.add('hidden');
                 renderApp();
+            }
+            // Mostrar tarjeta vehículo solo en furgoneta
+            const tv = document.getElementById('tarjeta-vehiculo');
+            if (tv) {
+                if (pestana === 'furgoneta') { tv.classList.remove('hidden'); actualizarTarjetaVehiculo(); }
+                else tv.classList.add('hidden');
             }
         }
 
@@ -1146,6 +1192,12 @@
             if (!item) return;
             if (confirm(`¿Eliminar por completo "${item.equipo}" del registro?`)) {
                 inventario = inventario.filter(x => x.id !== id);
+                // Guardar ID eliminado para no volver a añadirlo en el merge
+                try {
+                    const deleted = JSON.parse(localStorage.getItem('app_epicheck_deleted_ids') || '[]');
+                    deleted.push(id);
+                    localStorage.setItem('app_epicheck_deleted_ids', JSON.stringify(deleted));
+                } catch {}
                 guardarEnLocalStorage();
                 renderApp();
             }
@@ -1552,6 +1604,60 @@
             }, 1500);
         });
 
+        // ── Vehículo (Furgoneta) ────────────────────────────────────────────────
+        function actualizarTarjetaVehiculo() {
+            const d = datosVehiculo;
+            document.getElementById('v-matricula').textContent      = d.matricula     || '—';
+            document.getElementById('v-marca-modelo').textContent   = [d.marca, d.modelo].filter(Boolean).join(' ') || '—';
+            document.getElementById('v-km').textContent             = d.kmActuales    ? Number(d.kmActuales).toLocaleString('es-ES') + ' km' : '—';
+            document.getElementById('v-aceite').textContent         = d.ultimoCambioAceite || '—';
+            document.getElementById('v-proximo-aceite').textContent = d.proximoAceite || '—';
+            document.getElementById('v-chasis').textContent         = d.chasis        || '—';
+            document.getElementById('v-obs').textContent            = d.observaciones || '—';
+        }
+
+        function abrirModalVehiculo() {
+            const d = datosVehiculo;
+            document.getElementById('v-form-matricula').value       = d.matricula     || '';
+            document.getElementById('v-form-anio').value            = d.anio          || '';
+            document.getElementById('v-form-marca').value           = d.marca         || '';
+            document.getElementById('v-form-modelo').value          = d.modelo        || '';
+            document.getElementById('v-form-km').value              = d.kmActuales    || '';
+            document.getElementById('v-form-aceite').value          = d.ultimoCambioAceite || '';
+            document.getElementById('v-form-proximo-aceite').value  = d.proximoAceite || '';
+            document.getElementById('v-form-chasis').value          = d.chasis        || '';
+            document.getElementById('v-form-obs').value             = d.observaciones || '';
+            const overlay = document.getElementById('modal-vehiculo-overlay');
+            const modal   = document.getElementById('modal-vehiculo');
+            overlay.classList.remove('hidden');
+            setTimeout(() => { overlay.classList.add('opacity-100'); modal.classList.replace('translate-y-full','translate-y-0'); }, 10);
+        }
+
+        function cerrarModalVehiculo() {
+            const overlay = document.getElementById('modal-vehiculo-overlay');
+            const modal   = document.getElementById('modal-vehiculo');
+            overlay.classList.remove('opacity-100');
+            modal.classList.replace('translate-y-0','translate-y-full');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        function guardarVehiculo() {
+            datosVehiculo = {
+                matricula:          document.getElementById('v-form-matricula').value.trim().toUpperCase(),
+                anio:               document.getElementById('v-form-anio').value.trim(),
+                marca:              document.getElementById('v-form-marca').value.trim(),
+                modelo:             document.getElementById('v-form-modelo').value.trim(),
+                kmActuales:         document.getElementById('v-form-km').value.trim(),
+                ultimoCambioAceite: document.getElementById('v-form-aceite').value.trim(),
+                proximoAceite:      document.getElementById('v-form-proximo-aceite').value.trim(),
+                chasis:             document.getElementById('v-form-chasis').value.trim(),
+                observaciones:      document.getElementById('v-form-obs').value.trim()
+            };
+            guardarDatosVehiculo(datosVehiculo);
+            actualizarTarjetaVehiculo();
+            cerrarModalVehiculo();
+        }
+
     </script>
     <!-- Modal Exportar -->
     <div id="modal-exportar-overlay" class="fixed inset-0 bg-black/70 z-50 hidden opacity-0 transition-opacity duration-300" onclick="cerrarModalExportar()"></div>
@@ -1626,6 +1732,61 @@
             class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
             <i class="fa-solid fa-download"></i> Exportar ahora
         </button>
+    </div>
+    <!-- Modal Vehículo -->
+    <div id="modal-vehiculo-overlay" class="fixed inset-0 bg-black/70 z-50 hidden opacity-0 transition-opacity duration-300" onclick="cerrarModalVehiculo()"></div>
+    <div id="modal-vehiculo" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-800 rounded-t-2xl z-50 p-5 shadow-2xl translate-y-full transition-transform duration-300 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-truck-ramp-box mr-2 text-sky-400"></i>Datos del Vehículo</h2>
+            <button onclick="cerrarModalVehiculo()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
+        </div>
+        <div class="space-y-3 text-sm">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Matrícula</label>
+                    <input type="text" id="v-form-matricula" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 uppercase focus:outline-none focus:border-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Año</label>
+                    <input type="text" id="v-form-anio" placeholder="Ej: 2019" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Marca</label>
+                    <input type="text" id="v-form-marca" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Modelo</label>
+                    <input type="text" id="v-form-modelo" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Kilómetros actuales</label>
+                <input type="number" id="v-form-km" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-sky-500">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Último cambio aceite</label>
+                    <input type="text" id="v-form-aceite" placeholder="Ej: 15-03-2024" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Próximo cambio aceite</label>
+                    <input type="text" id="v-form-proximo-aceite" placeholder="Ej: 15-03-2025" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Número de Chasis (VIN)</label>
+                <input type="text" id="v-form-chasis" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Observaciones</label>
+                <textarea id="v-form-obs" rows="2" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500 resize-none"></textarea>
+            </div>
+            <button onclick="guardarVehiculo()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl mt-1 transition-colors">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar
+            </button>
+        </div>
     </div>
 
 </body>
