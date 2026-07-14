@@ -1,50 +1,25 @@
 {
-  "id": "com.vezuncho.epiccheck",
-  "name": "EPI-Check",
+  "name": "EPI-Check - Control de Inspecciones",
   "short_name": "EPI-Check",
-  "description": "Control de EPIs, herramientas y equipos de trabajo. Tus EPIs, siempre bajo control.",
-  "start_url": "/Epick-chek/",
-  "scope": "/Epick-chek/",
+  "description": "Control de EPIs, materiales, inspecciones, fotografías y ubicaciones.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "lang": "es",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
-  ],
-  "screenshots": [
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "EPI-Check pantalla principal"
-    }
-  ],
-  "categories": ["productivity", "utilities"],
-  "prefer_related_applications": false
+  ]
 }
