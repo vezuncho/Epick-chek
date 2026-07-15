@@ -1,46 +1,36 @@
-# EPI-Check en GitHub Pages
+# EPI-Check · Supabase Fase 1
 
-Este repositorio contiene la versión web instalable de EPI-Check.
+Esta versión parte del paquete de GitHub con resaltado por número e incorpora:
 
-## Publicarla por primera vez
+- Registro e inicio de sesión por correo y contraseña.
+- Subida manual segura de los datos actuales del móvil.
+- Restauración manual desde Supabase.
+- Sincronización automática después de realizar la primera subida.
+- Cola práctica sin conexión: los datos siguen guardándose localmente y se vuelven a intentar al recuperar internet.
 
-1. Entra en GitHub y pulsa **New repository**.
-2. Ponle un nombre sencillo, por ejemplo `epi-check`.
-3. Elige **Private** si tu plan permite GitHub Pages privado; en GitHub Free, lo más sencillo es usar un repositorio **Public**. No subas contraseñas, claves privadas ni datos personales reales.
-4. Crea el repositorio sin añadir README, licencia ni `.gitignore`.
-5. Dentro del repositorio, pulsa **Add file → Upload files**.
-6. Sube **todo el contenido de esta carpeta**, incluida la carpeta oculta `.github`. No subas la carpeta contenedora como una sola carpeta.
-7. Pulsa **Commit changes**.
-8. Ve a **Settings → Pages**.
-9. En **Build and deployment → Source**, selecciona **GitHub Actions**.
-10. Abre la pestaña **Actions** y espera a que `Deploy GitHub Pages` termine en verde.
-11. Vuelve a **Settings → Pages**. Allí aparecerá la dirección pública, normalmente:
-   `https://TU-USUARIO.github.io/epi-check/`
+## Lo que se sincroniza en esta fase
 
-## Instalarla en Android
+- Inventario y sus campos.
+- Ubicaciones.
+- Nombres y configuración del plano.
+- Historiales e inspecciones almacenados localmente.
+- Datos del vehículo.
+- Ajustes de la app.
 
-1. Abre la dirección publicada con Chrome.
-2. Menú de Chrome → **Añadir a pantalla de inicio** o **Instalar aplicación**.
-3. Abre EPI-Check desde el icono instalado.
+## Lo que todavía no se sincroniza
 
-## Actualizar la aplicación
+Las fotos originales guardadas en IndexedDB. Se mantienen en el móvil y se añadirán en la Fase 2 mediante Supabase Storage. Las referencias y miniaturas que estén en localStorage pueden formar parte del estado, pero no deben considerarse una copia completa de las fotografías.
 
-1. Sustituye `index.html` o los archivos modificados en el repositorio.
-2. Haz un nuevo commit.
-3. GitHub Actions volverá a publicar automáticamente.
-4. Si el móvil sigue mostrando una versión antigua, cierra la app, vuelve a abrirla con internet y, si hace falta, borra la caché del sitio.
+## Primera prueba
 
-## Datos y fotos
+1. Sustituye los archivos del repositorio por el contenido de esta carpeta.
+2. Espera a que GitHub Pages publique la actualización.
+3. Abre la app y ve a **Menú → Ajustes → Cuenta y sincronización**.
+4. Crea una cuenta o inicia sesión.
+5. Pulsa **Subir los datos actuales de este móvil**.
+6. Comprueba en Supabase, tabla `epi_check_state`, que aparece una fila.
+7. Haz un cambio pequeño en un material y espera a que el estado indique **Sincronizado**.
 
-GitHub Pages solo publica los archivos de la aplicación. Los datos que introduces siguen guardándose en el navegador del dispositivo mediante `localStorage` e `IndexedDB`; no se sincronizan entre móviles ni se guardan automáticamente en GitHub.
+## Seguridad
 
-Para sincronización real y copias en la nube, debe conectarse Supabase posteriormente. Nunca pongas una clave `service_role` de Supabase dentro de `index.html`; en una aplicación web solo debe utilizarse la clave pública `anon` junto con políticas RLS.
-
-## Archivos principales
-
-- `index.html`: aplicación.
-- `manifest.json`: instalación como PWA.
-- `service-worker.js`: funcionamiento sin conexión y caché.
-- `icon-192.png` y `icon-512.png`: iconos.
-- `.github/workflows/pages.yml`: publicación automática.
-- `.nojekyll`: sirve los archivos como web estática sin procesamiento de Jekyll.
+El frontend contiene solo la URL pública del proyecto y la clave `sb_publishable_`. La protección depende de las políticas RLS ya creadas. No añadas ninguna clave `sb_secret_` o `service_role` a GitHub.
