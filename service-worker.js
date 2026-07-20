@@ -1,4 +1,4 @@
-const CACHE_NAME = 'epi-check-photos-modular-v2-exportes-nav-persistente-v1-epis-ubicacion';
+const CACHE_NAME = 'epi-check-v20260720-menu-fix';
 const APP_SHELL = [
   "./",
   "./index.html",
