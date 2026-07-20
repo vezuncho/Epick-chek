@@ -779,7 +779,7 @@
                 <select id="form-donde-select" class="hidden w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
                     <option value="">Sin ubicación asignada</option>
                 </select>
-                <input type="text" id="form-donde-libre" placeholder="Ej.: coche, taquilla, mochila o almacén" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                <input type="text" id="form-donde-libre" placeholder="Describe la ubicación" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
                 <p id="form-donde-ayuda" class="hidden mt-1.5 text-[10px] text-cyan-300/90"><i class="fa-solid fa-circle-info mr-1"></i>Selecciona una zona real del plano para garantizar el resaltado.</p>
             </div>
 
@@ -2258,7 +2258,7 @@
                                 <span class="font-semibold text-slate-400 not-italic">Estado:</span> ${esc(item.estado)}
                             </div>
 
-                            <div class="epi-card-assets grid ${item.ubicacion === 'herramienta' ? 'grid-cols-5' : (item.ubicacion === 'furgoneta' ? 'grid-cols-5' : (item.ubicacion === 'personal' ? 'grid-cols-4' : 'grid-cols-3'))} gap-2 text-[11px]">
+                            <div class="epi-card-assets grid ${item.ubicacion === 'herramienta' ? 'grid-cols-5' : (item.ubicacion === 'furgoneta' ? 'grid-cols-5' : 'grid-cols-3')} gap-2 text-[11px]">
                                 <button data-action="historial" class="bg-slate-900 hover:bg-slate-700 text-slate-300 font-semibold px-2 py-2 rounded-lg border border-slate-700 flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> ${Array.isArray(item.historialInspecciones) ? item.historialInspecciones.length : 0}
                                 </button>
@@ -2270,7 +2270,6 @@
                                 </button>
                                 ${item.ubicacion === 'herramienta' ? `<button data-action="mapa-armario" title="Ver mapa del armario" class="bg-slate-900 hover:bg-amber-900/60 text-slate-300 border-slate-700 font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-location-dot text-amber-400"></i></button>` : ''}
                                 ${item.ubicacion === 'furgoneta' ? `<button type="button" data-action="mapa-armario" title="${ubicacionAsignada ? 'Ver ubicación asignada' : 'Ubicación sin asignar'}" aria-label="${ubicacionAsignada ? 'Ubicación asignada' : 'Ubicación sin asignar'}" class="${ubicacionAsignada ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionAsignada ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
-                                ${item.ubicacion === 'personal' ? `<button type="button" data-action="donde" title="${ubicacionFisica ? 'Ubicación: ' + esc(ubicacionFisica) : 'Añadir ubicación'}" aria-label="${ubicacionFisica ? 'Consultar ubicación' : 'Añadir ubicación'}" class="${ubicacionFisica ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionFisica ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${(item.ubicacion === 'furgoneta' || item.ubicacion === 'herramienta') ? `<button data-action="prestado" class="${prestadoActivo ? 'bg-fuchsia-900/70 border-fuchsia-600 text-fuchsia-200' : 'bg-slate-900 hover:bg-slate-700 text-slate-300 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-handshake text-fuchsia-400"></i></button>` : ''}
                             </div>
 
@@ -7452,19 +7451,9 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
     cloudSession = data && data.session ? data.session : null;
     cloudClient.auth.onAuthStateChange((_event, session) => {
       cloudSession = session;
-      if (window.EpiCloud) window.EpiCloud.client = cloudClient;
-      window.dispatchEvent(new CustomEvent('epicheck-cloud-session'));
       refreshCloudPanel();
     });
     installSaveHooks();
-    window.__epiGetInventario = () => inventario;
-    window.EpiCloud = {
-      client: cloudClient,
-      getUser: currentUser,
-      uploadState: uploadCurrentState,
-      scheduleSync: scheduleCloudUpload
-    };
-    window.dispatchEvent(new CustomEvent('epicheck-cloud-ready'));
     await refreshCloudPanel();
   }
 
@@ -7473,6 +7462,5 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
 })();
 </script>
 
-<script src="js/17-supabase-photos.js?v=20260720-2"></script>
 </body>
 </html>
