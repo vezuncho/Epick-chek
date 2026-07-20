@@ -16,22 +16,34 @@ function bottomNavMenu(){setBottomNavActive('bn-menu');cerrarPanelesBottomNav();
 (function(){function syncAreaUI(pestana){const labels={personal:'EPIs',furgoneta:'Furgoneta',grua:'Grúa',herramienta:'Herram.'};['personal','furgoneta','grua','herramienta'].forEach(s=>{const b=document.getElementById('tab-'+s);if(!b)return;const active=s===pestana;b.className=active?'area-tab active-area py-3 rounded-xl transition-all flex flex-col items-center justify-center gap-1 text-emerald-400 bg-slate-800 shadow-sm border border-emerald-700/50':'area-tab py-3 rounded-xl transition-all flex flex-col items-center justify-center gap-1 text-slate-400 bg-slate-950 border border-slate-700 hover:text-slate-200';});const lab=document.getElementById('area-active-label');if(lab)lab.textContent=labels[pestana]||'Área';}
 const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCambiar.__navReorgWrapped){const wrapped=function(pestana){const r=oldCambiar.apply(this,arguments);syncAreaUI(pestana);setBottomNavActive('bn-home');return r;};wrapped.__navReorgWrapped=true;window.cambiarPestana=wrapped;}window.addEventListener('load',()=>{try{syncAreaUI(window.pestanaActual||'personal');}catch(e){}});})();
 
-/* Garantiza que la barra siga siendo hija directa de body y visible aunque una vista cambie el DOM. */
+/* Mantiene la barra como hija directa de body sin observar cambios de estilo.
+   La versión anterior observaba el atributo style y a la vez lo modificaba,
+   provocando un bucle continuo que podía bloquear toda la aplicación. */
 (function mantenerBarraInferiorPersistente(){
+    let programado=false;
+
     function asegurar(){
+        programado=false;
         const nav=document.getElementById('epi-bottom-nav');
         if(!nav)return;
         if(nav.parentElement!==document.body)document.body.appendChild(nav);
-        nav.hidden=false;
-        nav.removeAttribute('aria-hidden');
-        nav.style.setProperty('display','flex','important');
-        nav.style.setProperty('visibility','visible','important');
-        nav.style.setProperty('opacity','1','important');
-        nav.style.setProperty('transform','none','important');
+        if(nav.hidden)nav.hidden=false;
+        if(nav.getAttribute('aria-hidden')==='true')nav.removeAttribute('aria-hidden');
     }
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',asegurar,{once:true});else asegurar();
+
+    function programar(){
+        if(programado)return;
+        programado=true;
+        requestAnimationFrame(asegurar);
+    }
+
+    if(document.readyState==='loading'){
+        document.addEventListener('DOMContentLoaded',asegurar,{once:true});
+    }else{
+        asegurar();
+    }
     window.addEventListener('load',asegurar,{once:true});
-    const observer=new MutationObserver(asegurar);
-    observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden']});
-    document.addEventListener('click',()=>requestAnimationFrame(asegurar),true);
+
+    const observer=new MutationObserver(programar);
+    observer.observe(document.body,{subtree:true,childList:true});
 })();
