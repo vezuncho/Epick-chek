@@ -1,4 +1,4 @@
-const CACHE_NAME = 'epi-check-v20260720-menu-fix';
+const CACHE_NAME = 'epi-check-v20260720-menu-fix-3';
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -36,7 +36,9 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME).then(async cache => {
+    await Promise.allSettled(APP_SHELL.map(url => cache.add(url)));
+  }));
   self.skipWaiting();
 });
 
