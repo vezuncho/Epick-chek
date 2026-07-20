@@ -1,4 +1,4 @@
-const CACHE_NAME = 'epi-check-photos-modular-v2-exportes';
+const CACHE_NAME = 'epi-check-photos-modular-v2-exportes-nav-persistente-v1';
 const APP_SHELL = [
   "./",
   "./index.html",
