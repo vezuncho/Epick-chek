@@ -1,7 +1,9 @@
-const CACHE_VERSION = 'epi-check-supabase-fase1-v1';
-const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_VERSION = 'epi-check-estable-20260720-v2';
+const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './js/17-supabase-photos.js'];
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(CACHE_VERSION).then(async cache => {
+    for (const url of APP_SHELL) { try { await cache.add(url); } catch (e) { console.warn('No se pudo cachear', url, e); } }
+  }));
   self.skipWaiting();
 });
 self.addEventListener('activate', event => {
