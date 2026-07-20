@@ -1,0 +1,209 @@
+/* Corrección final móvil: todas las pantallas respetan barra inferior y zona segura del teléfono. */
+    :root{
+        --epi-safe-bottom: env(safe-area-inset-bottom, 0px);
+        --epi-nav-height: calc(86px + var(--epi-safe-bottom));
+        --epi-page-bottom: calc(var(--epi-nav-height) + 36px);
+        --epi-sheet-gap: calc(12px + var(--epi-safe-bottom));
+    }
+
+    html,
+    body{
+        width:100%;
+        min-height:100dvh;
+        overflow-x:hidden!important;
+        -webkit-text-size-adjust:100%;
+    }
+
+    body{
+        padding-bottom:var(--epi-page-bottom)!important;
+    }
+
+    main{
+        width:100%;
+        max-width:430px!important;
+        padding-left:14px!important;
+        padding-right:14px!important;
+        padding-bottom:var(--epi-page-bottom)!important;
+        margin-left:auto!important;
+        margin-right:auto!important;
+        box-sizing:border-box;
+    }
+
+    #material-list,
+    #inicio-panel,
+    #dashboard-panel,
+    #tarjeta-vehiculo,
+    #prioridad2-tools,
+    #view-toolbar{
+        max-width:100%;
+        box-sizing:border-box;
+    }
+
+    #material-list{
+        padding-bottom:calc(var(--epi-page-bottom) + 12px)!important;
+    }
+
+    #epi-bottom-nav{
+        z-index:100!important;
+        padding:8px 10px calc(10px + var(--epi-safe-bottom))!important;
+    }
+
+    #epi-bottom-nav .bottom-nav-inner{
+        width:min(calc(100vw - 18px),430px)!important;
+        gap:4px!important;
+        padding:6px!important;
+    }
+
+    .epi-bottom-btn{
+        min-height:52px!important;
+        padding:7px 2px!important;
+    }
+
+    .epi-bottom-btn span{
+        font-size:9px!important;
+        white-space:nowrap;
+    }
+
+    /* Botones flotantes y avisos: nunca encima de la barra inferior. */
+    #epi-floating-top,
+    .epi-toast{
+        bottom:calc(var(--epi-nav-height) + 14px)!important;
+    }
+
+    /* Panel lateral: queda por encima de la barra inferior y con scroll útil hasta el final. */
+    #sidebar-overlay{
+        z-index:130!important;
+    }
+
+    #sidebar-panel{
+        z-index:140!important;
+        height:100dvh!important;
+        max-height:100dvh!important;
+        padding-bottom:calc(28px + var(--epi-safe-bottom))!important;
+        overflow-y:auto!important;
+        overscroll-behavior:contain;
+    }
+
+    /* Modales tipo hoja inferior: por encima de la navegación, sin botones pegados al borde. */
+    #modal-overlay,
+    #modal-exportar-overlay,
+    #modal-vehiculo-overlay,
+    #modal-prestamo-overlay,
+    #modal-contextual-overlay{
+        z-index:145!important;
+    }
+
+    #modal-form,
+    #modal-exportar,
+    #modal-vehiculo,
+    #modal-prestamo{
+        z-index:155!important;
+        left:10px!important;
+        right:10px!important;
+        bottom:var(--epi-sheet-gap)!important;
+        width:auto!important;
+        max-width:430px!important;
+        margin-left:auto!important;
+        margin-right:auto!important;
+        max-height:calc(100dvh - 28px - var(--epi-safe-bottom))!important;
+        overflow-y:auto!important;
+        overscroll-behavior:contain;
+        padding-bottom:calc(26px + var(--epi-safe-bottom))!important;
+        border-radius:22px!important;
+    }
+
+    /* Modales creados por JavaScript: dashboard, calendario, inspección, detalle, fotos, etc. */
+    #modal-inspeccion-rapida-overlay,
+    #modal-dashboard-overlay,
+    #modal-calendario-overlay,
+    #modal-item-overlay,
+    #modal-alertas-overlay,
+    #modal-generico-overlay,
+    #modal-fotos-item-overlay,
+    #modal-foto-overlay{
+        z-index:150!important;
+        left:0!important;
+        right:0!important;
+        top:0!important;
+        bottom:0!important;
+        padding:12px 10px calc(12px + var(--epi-safe-bottom))!important;
+        align-items:flex-end!important;
+        box-sizing:border-box;
+    }
+
+    #modal-inspeccion-rapida-overlay > div,
+    #modal-dashboard-overlay > div,
+    #modal-calendario-overlay > div,
+    #modal-item-overlay > div,
+    #modal-alertas-overlay > div,
+    #modal-generico-overlay > div,
+    #modal-fotos-item-overlay > div,
+    #modal-foto-overlay > div{
+        width:100%!important;
+        max-width:430px!important;
+        max-height:calc(100dvh - 28px - var(--epi-safe-bottom))!important;
+        margin-left:auto!important;
+        margin-right:auto!important;
+        overflow-y:auto!important;
+        overscroll-behavior:contain;
+        border-radius:22px!important;
+        padding-bottom:calc(18px + var(--epi-safe-bottom))!important;
+        box-sizing:border-box;
+    }
+
+    /* Cuerpos internos con scroll para que los botones inferiores siempre sean alcanzables. */
+    #modal-dashboard-body,
+    #modal-calendario-body,
+    #modal-item-body,
+    #modal-fotos-item-body{
+        max-height:calc(100dvh - 170px - var(--epi-safe-bottom))!important;
+        overflow-y:auto!important;
+        padding-bottom:16px!important;
+    }
+
+    /* Formularios: evita que el último botón quede escondido tras teclado/barra del móvil. */
+    form,
+    .modal-content,
+    #modal-form .space-y-4,
+    #modal-exportar .space-y-3,
+    #modal-vehiculo .space-y-3{
+        padding-bottom:12px!important;
+    }
+
+    input,
+    textarea,
+    select,
+    button{
+        max-width:100%;
+    }
+
+    @media (max-width:380px){
+        main{padding-left:10px!important;padding-right:10px!important;}
+        #main-tabs{padding:10px!important;}
+        #epi-bottom-nav .bottom-nav-inner{width:calc(100vw - 12px)!important;}
+        .epi-bottom-btn i{font-size:.98rem!important;}
+        .epi-bottom-btn span{font-size:8.5px!important;}
+    }
+
+    @media (max-height:700px){
+        :root{
+            --epi-nav-height:calc(78px + var(--epi-safe-bottom));
+            --epi-page-bottom:calc(var(--epi-nav-height) + 28px);
+        }
+        header{padding-top:8px!important;padding-bottom:8px!important;}
+        .epi-bottom-btn{min-height:48px!important;}
+        #modal-form,
+        #modal-exportar,
+        #modal-vehiculo,
+        #modal-prestamo,
+        #modal-inspeccion-rapida-overlay > div,
+        #modal-dashboard-overlay > div,
+        #modal-calendario-overlay > div,
+        #modal-item-overlay > div,
+        #modal-alertas-overlay > div,
+        #modal-generico-overlay > div,
+        #modal-fotos-item-overlay > div,
+        #modal-foto-overlay > div{
+            max-height:calc(100dvh - 20px - var(--epi-safe-bottom))!important;
+        }
+    }

@@ -1,0 +1,90 @@
+/* Barra inferior persistente en todas las pantallas de EPI-Check. */
+:root{
+  --epi-bottom-safe: env(safe-area-inset-bottom, 0px);
+  --epi-bottom-nav-height: calc(82px + var(--epi-bottom-safe));
+}
+
+#epi-bottom-nav{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  width:100%!important;
+  min-height:var(--epi-bottom-nav-height)!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  transform:none!important;
+  justify-content:center!important;
+  align-items:flex-end!important;
+  padding:8px 10px calc(10px + var(--epi-bottom-safe))!important;
+  box-sizing:border-box!important;
+  background:linear-gradient(180deg,rgba(15,23,42,0),rgba(15,23,42,.94) 25%,#0f172a 55%)!important;
+  border-top:1px solid rgba(51,65,85,.75)!important;
+  z-index:2147483000!important;
+  pointer-events:none!important;
+  isolation:isolate;
+}
+
+#epi-bottom-nav .bottom-nav-inner{
+  width:min(calc(100vw - 18px),430px)!important;
+  margin:0 auto!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:4px!important;
+  padding:6px!important;
+  border:1px solid rgba(71,85,105,.85)!important;
+  border-radius:22px!important;
+  background:rgba(15,23,42,.97)!important;
+  box-shadow:0 -12px 34px rgba(0,0,0,.34)!important;
+  pointer-events:auto!important;
+}
+
+.epi-bottom-btn{
+  min-width:0!important;
+  min-height:52px!important;
+  border:0!important;
+  border-radius:16px!important;
+  padding:7px 2px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  background:transparent!important;
+  color:#94a3b8!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.epi-bottom-btn i{font-size:1.03rem!important;line-height:1!important;}
+.epi-bottom-btn:active{transform:scale(.94)!important;}
+.epi-bottom-btn.is-active{background:#1e293b!important;color:#34d399!important;box-shadow:inset 0 0 0 1px rgba(16,185,129,.35),0 8px 22px rgba(16,185,129,.10)!important;}
+.epi-bottom-btn.nav-calendar.is-active{color:#fbbf24!important;}
+.epi-bottom-btn.nav-dashboard.is-active{color:#38bdf8!important;}
+.epi-bottom-btn.nav-inspection.is-active{color:#a78bfa!important;}
+.epi-bottom-btn.nav-menu.is-active{color:#c084fc!important;}
+
+html,body{padding-bottom:var(--epi-bottom-nav-height)!important;}
+main,#material-list,#inicio-panel,#dashboard-panel{padding-bottom:calc(var(--epi-bottom-nav-height) + 24px)!important;}
+
+/* Los paneles a pantalla completa terminan por encima de la barra. */
+#modal-inspeccion-rapida-overlay,
+#modal-dashboard-overlay,
+#modal-calendario-overlay,
+#modal-item-overlay,
+#modal-alertas-overlay,
+#modal-generico-overlay,
+#modal-overlay,
+#modal-exportar-overlay,
+#modal-vehiculo-overlay,
+#modal-prestamo-overlay{
+  padding-bottom:var(--epi-bottom-nav-height)!important;
+  box-sizing:border-box!important;
+}
+
+body.modo-claro #epi-bottom-nav{background:linear-gradient(180deg,rgba(248,250,252,0),rgba(248,250,252,.94) 25%,#f8fafc 55%)!important;border-color:#cbd5e1!important;}
+body.modo-claro #epi-bottom-nav .bottom-nav-inner{background:rgba(255,255,255,.98)!important;border-color:#cbd5e1!important;}
+body.modo-claro .epi-bottom-btn{color:#64748b!important;}
+body.modo-claro .epi-bottom-btn.is-active{background:#f1f5f9!important;}

@@ -1,0 +1,54 @@
+/* Corrección scroll menús principales: permite desplazamiento vertical real en Android/WebIntoApp. */
+    html,
+    body{
+        height:auto!important;
+        min-height:100dvh!important;
+        max-height:none!important;
+        overflow-x:hidden!important;
+        overflow-y:auto!important;
+        touch-action:pan-y!important;
+        -webkit-overflow-scrolling:touch!important;
+    }
+
+    body{
+        position:relative!important;
+        overscroll-behavior-y:auto!important;
+    }
+
+    main{
+        min-height:auto!important;
+        height:auto!important;
+        max-height:none!important;
+        overflow:visible!important;
+        touch-action:pan-y!important;
+        -webkit-overflow-scrolling:touch!important;
+        padding-bottom:calc(var(--epi-page-bottom, 130px) + 72px)!important;
+    }
+
+    #material-list,
+    #inicio-panel,
+    #dashboard-panel,
+    #tarjeta-vehiculo,
+    #prioridad2-tools,
+    #view-toolbar,
+    #active-filter-banner,
+    #global-incidencias-banner{
+        overflow:visible!important;
+        touch-action:pan-y!important;
+    }
+
+    #sidebar-panel{
+        overflow-y:auto!important;
+        -webkit-overflow-scrolling:touch!important;
+        touch-action:pan-y!important;
+        overscroll-behavior-y:contain!important;
+        justify-content:flex-start!important;
+        gap:16px!important;
+    }
+
+    #main-tabs,
+    .area-tab,
+    .menu-nav-btn,
+    .settings-card-btn{
+        touch-action:manipulation!important;
+    }

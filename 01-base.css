@@ -1,0 +1,157 @@
+/* Prioridad B: modo claro/oscuro, microanimaciones y feedback */
+        html { scroll-behavior: smooth; }
+        body, header, main, section, div, button, input, textarea, label, span {
+            transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+            transition-duration: 180ms;
+            transition-timing-function: ease-out;
+        }
+        button:active { transform: scale(0.97); }
+        .epi-pop-ok { animation: epiPopOk 420ms ease-out; }
+        .epi-pop-warn { animation: epiPopWarn 420ms ease-out; }
+        @keyframes epiPopOk {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(16,185,129,0); }
+            45% { transform: scale(1.018); box-shadow: 0 0 0 6px rgba(16,185,129,.16); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(16,185,129,0); }
+        }
+        @keyframes epiPopWarn {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+            100% { transform: translateX(0); }
+        }
+        #epi-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 88px;
+            transform: translateX(-50%) translateY(18px);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            max-width: 92vw;
+        }
+        #epi-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        body.modo-claro {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        body.modo-claro header,
+        body.modo-claro [class*="bg-slate-800"],
+        body.modo-claro [class*="bg-slate-850"],
+        body.modo-claro [class*="bg-slate-900"],
+        body.modo-claro [class*="bg-slate-950"],
+        body.modo-claro [class*="from-slate-800"],
+        body.modo-claro [class*="to-slate-900"] {
+            background-color: #ffffff !important;
+            background-image: none !important;
+        }
+        body.modo-claro [class*="bg-slate-700"] {
+            background-color: #e2e8f0 !important;
+        }
+        body.modo-claro [class*="border-slate-700"],
+        body.modo-claro [class*="border-slate-600"],
+        body.modo-claro [class*="border-slate-800"] {
+            border-color: #cbd5e1 !important;
+        }
+        body.modo-claro [class*="text-slate-100"],
+        body.modo-claro [class*="text-slate-200"],
+        body.modo-claro [class*="text-slate-300"] {
+            color: #0f172a !important;
+        }
+        body.modo-claro [class*="text-slate-400"],
+        body.modo-claro [class*="text-slate-500"] {
+            color: #475569 !important;
+        }
+        body.modo-claro input,
+        body.modo-claro textarea {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        body.modo-claro .shadow-lg,
+        body.modo-claro .shadow-xl,
+        body.modo-claro .shadow-2xl,
+        body.modo-claro .shadow-sm {
+            box-shadow: 0 8px 22px rgba(15,23,42,.08) !important;
+        }
+        .epi-card-enter { animation: epiCardEnter 240ms ease-out both; }
+        .epi-card-match { animation: epiCardMatch 520ms ease-out both; }
+        .epi-action-ok { animation: epiActionOk 560ms ease-out both; }
+        .epi-action-warn { animation: epiActionWarn 520ms ease-out both; }
+        .epi-action-error { animation: epiActionError 520ms ease-out both; }
+        .epi-search-active { box-shadow: 0 0 0 3px rgba(16,185,129,.18), 0 12px 26px rgba(0,0,0,.16); }
+        .epi-pressable { will-change: transform; }
+        .epi-pressable:hover { transform: translateY(-1px); }
+        @keyframes epiCardEnter {
+            from { opacity: 0; transform: translateY(8px) scale(.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes epiCardMatch {
+            0% { box-shadow: 0 0 0 rgba(16,185,129,0); }
+            38% { box-shadow: 0 0 0 5px rgba(16,185,129,.18); }
+            100% { box-shadow: 0 0 0 rgba(16,185,129,0); }
+        }
+        @keyframes epiActionOk {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.022); box-shadow: 0 0 0 7px rgba(16,185,129,.18); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(16,185,129,0); }
+        }
+        @keyframes epiActionWarn {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+        }
+        @keyframes epiActionError {
+            0%, 100% { transform: translateX(0); }
+            15% { transform: translateX(-5px); }
+            30% { transform: translateX(5px); }
+            45% { transform: translateX(-4px); }
+            60% { transform: translateX(4px); }
+            75% { transform: translateX(-2px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+        }
+    
+        /* Mantener posición tras acciones */
+        .epi-scroll-restored {
+            outline: 2px solid rgba(16,185,129,.75);
+            outline-offset: 3px;
+            transition: outline-color .45s ease, transform .18s ease;
+        }
+
+        /* Mejora UX: vista compacta y filtro global de incidencias */
+        .epi-view-toolbar {
+            position: sticky;
+            top: 132px;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+        }
+        .epi-compact-card {
+            padding: .75rem !important;
+            border-radius: .9rem !important;
+        }
+        .epi-compact-card .epi-card-info,
+        .epi-compact-card .epi-card-state,
+        .epi-compact-card .epi-card-assets {
+            display: none !important;
+        }
+        .epi-compact-card h3 {
+            font-size: .9rem !important;
+            line-height: 1.15rem !important;
+        }
+        .epi-compact-card .epi-card-actions {
+            padding-top: .45rem !important;
+        }
+        .epi-compact-card .epi-card-actions button {
+            padding-top: .45rem !important;
+            padding-bottom: .45rem !important;
+        }
+        .epi-filter-on {
+            box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+        }

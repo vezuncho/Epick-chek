@@ -1,0 +1,85 @@
+/* Ajuste global: evita que menús, modales y paneles queden pegados o tapados por la barra inferior. */
+    :root{
+        --epi-bottom-nav-space: calc(112px + env(safe-area-inset-bottom));
+        --epi-bottom-sheet-gap: calc(14px + env(safe-area-inset-bottom));
+    }
+
+    body{
+        padding-bottom: var(--epi-bottom-nav-space) !important;
+    }
+
+    main,
+    #material-list,
+    #inicio-panel,
+    #dashboard-panel{
+        padding-bottom: calc(var(--epi-bottom-nav-space) + 12px) !important;
+    }
+
+    #epi-floating-top,
+    .epi-toast{
+        bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+    }
+
+    #epi-bottom-nav{
+        padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+    }
+
+    #epi-bottom-nav .bottom-nav-inner{
+        margin-bottom: 2px !important;
+    }
+
+    #sidebar-panel{
+        padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+        scroll-padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+
+    #modal-form,
+    #modal-exportar,
+    #modal-vehiculo,
+    #modal-prestamo{
+        bottom: var(--epi-bottom-sheet-gap) !important;
+        max-height: calc(90vh - 28px - env(safe-area-inset-bottom)) !important;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)) !important;
+        border-bottom-left-radius: 22px !important;
+        border-bottom-right-radius: 22px !important;
+    }
+
+    #modal-inspeccion-rapida-overlay,
+    #modal-dashboard-overlay,
+    #modal-calendario-overlay{
+        bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+        padding-bottom: 14px !important;
+    }
+
+    #modal-item-overlay,
+    #modal-alertas-overlay,
+    #modal-generico-overlay{
+        padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+        align-items: flex-end !important;
+    }
+
+    #modal-inspeccion-rapida-overlay > div,
+    #modal-dashboard-overlay > div,
+    #modal-calendario-overlay > div,
+    #modal-item-overlay > div,
+    #modal-alertas-overlay > div,
+    #modal-generico-overlay > div{
+        border-bottom-left-radius: 22px !important;
+        border-bottom-right-radius: 22px !important;
+        max-height: calc(88vh - 112px - env(safe-area-inset-bottom)) !important;
+        overflow-y: auto;
+    }
+
+    @media (max-height: 700px){
+        :root{ --epi-bottom-nav-space: calc(100px + env(safe-area-inset-bottom)); }
+        #modal-inspeccion-rapida-overlay,
+        #modal-dashboard-overlay,
+        #modal-calendario-overlay{
+            bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+        }
+        #modal-item-overlay,
+        #modal-alertas-overlay,
+        #modal-generico-overlay{
+            padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+        }
+    }
