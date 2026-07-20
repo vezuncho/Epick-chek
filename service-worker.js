@@ -1,4 +1,4 @@
-const CACHE_NAME = 'epi-check-modular-v2-exportes';
+const CACHE_NAME = 'epi-check-photos-modular-v2-exportes';
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -31,7 +31,8 @@ const APP_SHELL = [
   "./js/13-strict-location-source.js",
   "./js/14-location-selector.js",
   "./js/15-number-highlight.js",
-  "./js/16-supabase-sync.js"
+  "./js/16-supabase-sync.js",
+  "./js/17-supabase-photos.js"
 ];
 
 self.addEventListener('install', event => {
