@@ -4752,12 +4752,7 @@ document.getElementById('material-list').addEventListener('click', function(e) {
                     } else {
                         // Fallback sin librería externa: archivo .xls compatible con Excel/Sheets.
                         const columnas = Object.keys(filas[0] || {});
-                        const tabla = `<!doctype html><html><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${columnas.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas.map(f => `<tr>${columnas.map(c => `<td>${esc(f[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>
-
-<!-- Corrección definitiva: navegación inferior visible en todas las pestañas principales -->
-
-
-</body></html>`;
+                        const tabla = `<!doctype html><html><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${columnas.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas.map(f => `<tr>${columnas.map(c => `<td>${esc(f[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
                         const blob = new Blob([tabla], { type: 'application/vnd.ms-excel;charset=utf-8' });
                         const nombreFallback = `EPI-Check_Export_${nombreSeccion}${nombreFiltro}_${fecha}.xls`;
                         descargarBlob(blob, nombreFallback);
@@ -7480,85 +7475,20 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
 
 <script src="js/17-supabase-photos.js?v=20260720-2"></script>
 
-<style id="epi-bottom-nav-persistent-final">
-  :root{
-    --epi-safe-bottom-final: env(safe-area-inset-bottom, 0px);
-    --epi-bottom-nav-height-final: calc(86px + var(--epi-safe-bottom-final));
-  }
-
-  /* La barra siempre queda en primer plano respecto a las pantallas principales. */
-  #epi-bottom-nav{
-    display:flex !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    position:fixed !important;
-    left:0 !important;
-    right:0 !important;
-    bottom:0 !important;
-    z-index:220 !important;
-  }
-
-  /* Calendario, dashboard e inspección terminan justo encima de la barra. */
-  #modal-calendario-overlay,
-  #modal-dashboard-overlay,
-  #modal-inspeccion-rapida-overlay{
-    top:0 !important;
-    bottom:var(--epi-bottom-nav-height-final) !important;
-    height:auto !important;
-    max-height:none !important;
-    z-index:180 !important;
-    padding-bottom:8px !important;
-  }
-
-  #modal-calendario-overlay > div,
-  #modal-dashboard-overlay > div,
-  #modal-inspeccion-rapida-overlay > div{
-    max-height:calc(100dvh - var(--epi-bottom-nav-height-final) - 16px) !important;
-    border-bottom-left-radius:22px !important;
-    border-bottom-right-radius:22px !important;
-  }
-
-  /* La pestaña Más conserva su panel, pero sin cubrir la navegación. */
-  #sidebar-overlay{
-    top:0 !important;
-    bottom:var(--epi-bottom-nav-height-final) !important;
-    height:auto !important;
-    z-index:190 !important;
-  }
-
-  #sidebar-panel{
-    top:0 !important;
-    bottom:var(--epi-bottom-nav-height-final) !important;
-    height:auto !important;
-    max-height:calc(100dvh - var(--epi-bottom-nav-height-final)) !important;
-    z-index:200 !important;
-    padding-bottom:24px !important;
-  }
-
-  @media (max-height:700px){
-    :root{ --epi-bottom-nav-height-final: calc(78px + var(--epi-safe-bottom-final)); }
-  }
+<style id="epi-nav-persistente-limpio-20260720">
+  :root{--epi-nav-safe:env(safe-area-inset-bottom,0px);--epi-nav-total:calc(88px + var(--epi-nav-safe));}
+  #epi-bottom-nav{display:flex!important;visibility:visible!important;opacity:1!important;position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:2147483000!important;transform:none!important;}
+  #modal-calendario-overlay,#modal-dashboard-overlay,#modal-inspeccion-rapida-overlay{bottom:var(--epi-nav-total)!important;height:auto!important;max-height:calc(100dvh - var(--epi-nav-total))!important;z-index:2147482000!important;}
+  #sidebar-overlay,#sidebar-panel{bottom:var(--epi-nav-total)!important;height:auto!important;max-height:calc(100dvh - var(--epi-nav-total))!important;z-index:2147482000!important;}
+  body{padding-bottom:calc(var(--epi-nav-total) + 24px)!important;}
 </style>
-<script id="epi-bottom-nav-state-final">
+<script id="epi-nav-persistente-limpio-js-20260720">
 (function(){
-  function marcar(id){
-    document.querySelectorAll('#epi-bottom-nav .epi-bottom-btn').forEach(function(btn){
-      btn.classList.toggle('is-active', btn.id === id);
-    });
-  }
-  document.addEventListener('click', function(event){
-    var closeButton = event.target.closest && event.target.closest(
-      '#modal-calendario-overlay button, #modal-dashboard-overlay button'
-    );
-    if(closeButton && /cerrar/i.test(closeButton.textContent || '')){
-      setTimeout(function(){ marcar('bn-home'); }, 0);
-    }
-  });
-  window.addEventListener('pageshow', function(){
-    var nav=document.getElementById('epi-bottom-nav');
-    if(nav) nav.removeAttribute('hidden');
-  });
+  function asegurarBarra(){var nav=document.getElementById('epi-bottom-nav');if(nav&&nav.parentNode===document.body){document.body.appendChild(nav);}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',asegurarBarra,{once:true});else asegurarBarra();
+  window.addEventListener('pageshow',asegurarBarra);
 })();
 </script>
+
 </body>
 </html>
