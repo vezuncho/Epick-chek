@@ -708,13 +708,8 @@
 
     <div id="modal-form" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-800 rounded-t-2xl z-[60] shadow-2xl translate-y-full transition-transform duration-300 h-[92dvh] max-h-[92dvh] overflow-hidden flex flex-col">
         <div class="flex justify-between items-center gap-3 px-5 pt-5 pb-3 shrink-0 border-b border-slate-700/70 bg-slate-800">
-            <h2 id="modal-title" class="text-base font-bold text-slate-100 min-w-0 truncate">Registrar Equipo</h2>
-            <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="cerrarModalFormulario()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
-                <button type="button" onclick="guardarFormulario()" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
-                    <i class="fa-solid fa-check mr-1"></i><span id="modal-save-label">Aceptar</span>
-                </button>
-            </div>
+            <h2 id="modal-title" class="text-base font-bold text-slate-100">Registrar Equipo</h2>
+            <button type="button" onclick="cerrarModalFormulario()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0">Cerrar</button>
         </div>
         
         <input type="hidden" id="form-id">
@@ -871,6 +866,11 @@
 
         </div>
 
+        <div class="shrink-0 px-5 pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] border-t border-slate-700/70 bg-slate-800 shadow-[0_-8px_24px_rgba(15,23,42,0.35)]">
+            <button type="button" onclick="guardarFormulario()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> <span id="modal-save-label">Guardar Equipo</span>
+            </button>
+        </div>
     </div>
 
     <!-- ========================= 08. JAVASCRIPT PRINCIPAL ========================= -->
@@ -3039,7 +3039,7 @@
         function abrirModalFormulario() {
             document.getElementById('modal-title').innerText = "Registrar Nuevo Equipo";
             const saveLabelNuevo = document.getElementById('modal-save-label');
-            if (saveLabelNuevo) saveLabelNuevo.innerText = 'Aceptar';
+            if (saveLabelNuevo) saveLabelNuevo.innerText = 'Guardar Equipo';
             document.getElementById('form-id').value = "";
             document.getElementById('form-equipo').value = "";
             document.getElementById('form-marca').value = "";
@@ -3083,7 +3083,7 @@
 
             document.getElementById('modal-title').innerText = "Editar Especificaciones";
             const saveLabelEditar = document.getElementById('modal-save-label');
-            if (saveLabelEditar) saveLabelEditar.innerText = 'Aceptar';
+            if (saveLabelEditar) saveLabelEditar.innerText = 'Guardar cambios';
             document.getElementById('form-id').value = item.id;
             document.getElementById('form-equipo').value = item.equipo;
             document.getElementById('form-marca').value = item.marca;
@@ -5298,12 +5298,9 @@ document.getElementById('material-list').addEventListener('click', function(e) {
     <!-- Modal Vehículo -->
     <div id="modal-vehiculo-overlay" class="fixed inset-0 bg-black/70 z-50 hidden opacity-0 transition-opacity duration-300" onclick="cerrarModalVehiculo()"></div>
     <div id="modal-vehiculo" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-800 rounded-t-2xl z-50 p-5 shadow-2xl translate-y-full transition-transform duration-300 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center gap-3 mb-4 sticky top-0 z-10 bg-slate-800 pb-3 border-b border-slate-700/70">
-            <h2 class="text-base font-bold text-slate-100 min-w-0 truncate"><i class="fa-solid fa-truck-ramp-box mr-2 text-sky-400"></i>Datos del Vehículo</h2>
-            <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="cerrarModalVehiculo()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
-                <button type="button" onclick="guardarVehiculo()" class="bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>Aceptar</button>
-            </div>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-bold text-slate-100"><i class="fa-solid fa-truck-ramp-box mr-2 text-sky-400"></i>Datos del Vehículo</h2>
+            <button onclick="cerrarModalVehiculo()" class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold">Cerrar</button>
         </div>
         <div class="space-y-3 text-sm">
             <div class="grid grid-cols-2 gap-3">
@@ -5356,7 +5353,9 @@ document.getElementById('material-list').addEventListener('click', function(e) {
                 <label class="block text-xs font-semibold text-slate-400 mb-1">Observaciones</label>
                 <textarea id="v-form-obs" rows="2" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500 resize-none"></textarea>
             </div>
-
+            <button onclick="guardarVehiculo()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl mt-1 transition-colors">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar
+            </button>
         </div>
     </div>
 
@@ -7070,7 +7069,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
    - Migración manual segura de los datos locales
    - Restauración manual desde la nube
    - Sincronización automática tras enlazar el dispositivo
-   - Las fotos originales de IndexedDB quedan para la Fase 2
+   - Las fotos originales se sincronizan mediante Supabase Storage
    ================================================================ */
 (function () {
   'use strict';
@@ -7165,8 +7164,8 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
       user_id: user ? user.id : null,
       local_storage: collectCloudLocalStorage(),
       photos: {
-        originals_synced: false,
-        note: 'Las fotos originales de IndexedDB se sincronizarán en la Fase 2. Se conservan localmente en este dispositivo.'
+        originals_synced: true,
+        note: 'Las fotos se conservan localmente y se sincronizan con Supabase Storage.'
       },
       environment: {
         origin: location.origin,
@@ -7474,7 +7473,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
       client: cloudClient,
       getUser: currentUser,
       uploadState: uploadCurrentState,
-      scheduleSync: scheduleCloudUpload
+      scheduleSync: scheduleCloudSync
     };
     window.dispatchEvent(new CustomEvent('epicheck-cloud-ready'));
     await refreshCloudPanel();
@@ -7485,7 +7484,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
 })();
 </script>
 
-<script src="js/17-supabase-photos.js?v=20260720-2"></script>
+<script src="js/17-supabase-photos.js?v=20260723-3"></script>
 
 <style id="epi-nav-persistente-limpio-20260720">
   :root{--epi-nav-safe:env(safe-area-inset-bottom,0px);--epi-nav-total:calc(88px + var(--epi-nav-safe));}
@@ -7502,5 +7501,108 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
 })();
 </script>
 
+
+
+<style id="epi-layout-above-bottom-nav-20260723">
+/* Capa final de mantenimiento: todas las vistas y ventanas terminan por encima de la barra inferior. */
+:root{
+  --epi-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --epi-nav-visible-height: calc(82px + var(--epi-safe-bottom));
+  --epi-content-bottom-gap: calc(var(--epi-nav-visible-height) + 22px);
+  --epi-sheet-gap: 10px;
+}
+html{min-height:100%;overflow-x:hidden;}
+body{
+  min-height:100dvh;
+  padding-bottom:var(--epi-content-bottom-gap)!important;
+  overflow-x:hidden!important;
+}
+#epi-bottom-nav{
+  z-index:1200!important;
+  bottom:0!important;
+}
+main,
+#home-panel,
+#inicio-panel,
+#dashboard-panel,
+#material-list,
+#almacenamiento-panel,
+#epi-cloud-panel,
+#prioridad2-tools,
+#tarjeta-vehiculo{
+  box-sizing:border-box!important;
+  padding-bottom:var(--epi-content-bottom-gap)!important;
+  scroll-padding-bottom:var(--epi-content-bottom-gap)!important;
+}
+/* Panel lateral y pantallas completas de navegación. */
+#sidebar-overlay,
+#sidebar-panel,
+#modal-calendario-overlay,
+#modal-dashboard-overlay,
+#modal-inspeccion-rapida-overlay,
+#modal-contextual-overlay,
+#modal-item-overlay,
+#modal-alertas-overlay,
+#modal-generico-overlay,
+#modal-fotos-item-overlay,
+#modal-foto-overlay,
+#modal-foto-interior-plano-overlay,
+#modal-mapa-armario-overlay{
+  bottom:var(--epi-nav-visible-height)!important;
+  height:auto!important;
+  max-height:calc(100dvh - var(--epi-nav-visible-height))!important;
+  box-sizing:border-box!important;
+}
+#sidebar-panel,
+#modal-calendario-body,
+#modal-dashboard-body,
+#modal-item-body,
+#modal-alertas-body,
+#modal-generico-body,
+#modal-fotos-item-body{
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scroll-padding-bottom:24px!important;
+  padding-bottom:24px!important;
+}
+/* Hojas inferiores independientes: quedan físicamente por encima de la barra. */
+#modal-form,
+#modal-exportar,
+#modal-vehiculo,
+#modal-prestamo{
+  bottom:calc(var(--epi-nav-visible-height) + var(--epi-sheet-gap))!important;
+  max-height:calc(100dvh - var(--epi-nav-visible-height) - 20px)!important;
+  border-bottom-left-radius:20px!important;
+  border-bottom-right-radius:20px!important;
+  box-sizing:border-box!important;
+}
+#modal-overlay,
+#modal-exportar-overlay,
+#modal-vehiculo-overlay,
+#modal-prestamo-overlay{
+  bottom:var(--epi-nav-visible-height)!important;
+  height:auto!important;
+}
+#modal-form-scroll,
+#modal-exportar,
+#modal-vehiculo,
+#modal-prestamo{
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scroll-padding-bottom:28px!important;
+}
+/* Los botones flotantes y avisos tampoco pisan la navegación. */
+#epi-floating-top,
+.epi-toast{
+  bottom:calc(var(--epi-nav-visible-height) + 14px)!important;
+}
+/* En pantallas bajas se reduce ligeramente la barra reservada sin ocultar contenido. */
+@media (max-height:700px){
+  :root{--epi-nav-visible-height:calc(76px + var(--epi-safe-bottom));}
+  #modal-form,#modal-exportar,#modal-vehiculo,#modal-prestamo{
+    max-height:calc(100dvh - var(--epi-nav-visible-height) - 12px)!important;
+  }
+}
+</style>
 </body>
 </html>

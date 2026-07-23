@@ -2,27 +2,28 @@
 
 Esta versión usa el bucket privado `Epi-check-file`.
 
-## Primera migración
+## Funcionamiento
 
-1. Publica esta versión en GitHub Pages.
-2. Abre EPI-Check e inicia sesión.
-3. Ve a **Cuenta y sincronización**.
-4. Pulsa **Subir y sincronizar todas las fotos**.
-5. Mantén la app abierta hasta que confirme el proceso.
+1. La foto se guarda primero en IndexedDB para que la app siga funcionando sin conexión.
+2. Si hay una sesión de Supabase e internet, se sube automáticamente.
+3. Si falla la conexión, queda en una cola persistente y se reintenta al volver a estar online.
+4. En otro dispositivo, las fotos que falten se recuperan desde Supabase.
+5. Al borrar una foto, también se elimina del bucket; si no hay conexión, el borrado queda pendiente.
 
-Las fotos nuevas se guardan primero en IndexedDB y después se suben automáticamente cuando hay internet.
+## Rutas
 
-## Recuperar en otro móvil
+- `{user_id}/materiales/{item_id}/...`
+- `{user_id}/epis/{item_id}/...`
+- `{user_id}/ubicaciones/{zona}/...`
+- `{user_id}/inspecciones/{inspeccion_id}/...`
 
-1. Inicia sesión con la misma cuenta.
-2. Restaura primero los datos desde Supabase.
-3. Vuelve a **Cuenta y sincronización**.
-4. Pulsa **Recuperar fotos en este móvil**.
+## Panel de control
 
-## Estructura del bucket
+En `Cuenta y sincronización` se muestran:
 
-- `{user_id}/materiales/{material_id}/{photo_id}.jpg`
-- `{user_id}/ubicaciones/{zona}/{photo_id}.jpg`
-- `{user_id}/inspecciones/{inspection_id}/{photo_id}.jpg`
+- Fotos locales.
+- Fotos enlazadas en Supabase.
+- Operaciones pendientes.
+- Errores que necesitan reintento.
 
-El bucket debe permanecer privado y las políticas RLS deben limitar el primer segmento de la ruta al `auth.uid()` del usuario.
+Incluye botones para sincronizar, recuperar y reintentar errores.
