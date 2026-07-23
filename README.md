@@ -34,3 +34,11 @@ Las fotos originales guardadas en IndexedDB. Se mantienen en el móvil y se aña
 ## Seguridad
 
 El frontend contiene solo la URL pública del proyecto y la clave `sb_publishable_`. La protección depende de las políticas RLS ya creadas. No añadas ninguna clave `sb_secret_` o `service_role` a GitHub.
+
+## Corrección de edición móvil (23/07/2026)
+
+- La ventana de alta/edición tiene desplazamiento vertical independiente.
+- La cabecera y el botón de guardado permanecen visibles.
+- En edición, el botón muestra «Guardar cambios».
+- Se respeta la zona segura inferior del móvil.
+- No se ha modificado la lógica de inventario, Supabase, fotos ni navegación.
