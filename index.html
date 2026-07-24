@@ -8088,14 +8088,48 @@ main,
       coincidencias: [],
       imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
       zonas: zonasOriginales
+    },
+    {
+      id: 'ford-transit-armario-herramientas',
+      nombre: 'Ford Transit · Armario de herramientas',
+      descripcion: 'Armario de herramientas específico para Ford Transit',
+      coincidencias: [
+        {marca:'Ford', modelo:'Transit'},
+        {marca:'Ford Transit', modelo:''},
+        {marca:'', modelo:'Ford Transit'}
+      ],
+      imagen: './assets/ford-transit-armario.png',
+      zonas: [
+        {key:'bandeja-superior',n:'1',label:'Bandeja superior',detalle:'Bandeja superior corrida',color:'#6b21a8',icon:'fa-layer-group',box:{left:3.4,top:14.2,width:93.2,height:4.8}},
+        {key:'bandeja-1',n:'1',label:'Bandeja organizadora 1',detalle:'Organizador superior 1',color:'#1d4ed8',icon:'fa-layer-group',box:{left:5.0,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-2',n:'2',label:'Bandeja organizadora 2',detalle:'Organizador superior 2',color:'#1d4ed8',icon:'fa-layer-group',box:{left:15.3,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-3',n:'3',label:'Bandeja organizadora 3',detalle:'Organizador superior 3',color:'#1d4ed8',icon:'fa-layer-group',box:{left:25.8,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-4',n:'4',label:'Bandeja organizadora 4',detalle:'Organizador superior 4',color:'#1d4ed8',icon:'fa-layer-group',box:{left:36.2,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-5',n:'5',label:'Bandeja organizadora 5',detalle:'Organizador superior 5',color:'#1d4ed8',icon:'fa-layer-group',box:{left:46.7,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-6',n:'6',label:'Bandeja organizadora 6',detalle:'Organizador superior 6',color:'#1d4ed8',icon:'fa-layer-group',box:{left:57.1,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-7',n:'7',label:'Bandeja organizadora 7',detalle:'Organizador superior 7',color:'#1d4ed8',icon:'fa-layer-group',box:{left:67.5,top:22.0,width:9.5,height:9.0}},
+        {key:'bandeja-8',n:'8',label:'Bandeja organizadora 8',detalle:'Organizador superior 8',color:'#1d4ed8',icon:'fa-layer-group',box:{left:78.0,top:22.0,width:14.0,height:9.0}},
+        {key:'cajon-1',n:'1',label:'Herramienta manual',detalle:'Cajón 1 · herramienta manual',color:'#1d4ed8',icon:'fa-screwdriver-wrench',box:{left:5.1,top:34.7,width:27.3,height:6.4}},
+        {key:'cajon-2',n:'2',label:'Llaves y alicates',detalle:'Cajón 2 · llaves y alicates',color:'#15803d',icon:'fa-toolbox',box:{left:5.1,top:41.4,width:27.3,height:6.4}},
+        {key:'cajon-3',n:'3',label:'Destornilladores',detalle:'Cajón 3 · destornilladores',color:'#d97706',icon:'fa-screwdriver',box:{left:5.1,top:48.1,width:27.3,height:6.6}},
+        {key:'cajon-4',n:'4',label:'Corte y medición',detalle:'Cajón 4 · corte y medición',color:'#b91c1c',icon:'fa-ruler-combined',box:{left:34.8,top:34.7,width:27.4,height:6.4}},
+        {key:'cajon-5',n:'5',label:'Fijaciones',detalle:'Cajón 5 · fijaciones',color:'#0f9aa8',icon:'fa-screwdriver-wrench',box:{left:34.8,top:41.4,width:27.4,height:6.4}},
+        {key:'cajon-6',n:'6',label:'Taladro y accesorios',detalle:'Cajón 6 · taladro y accesorios',color:'#c21883',icon:'fa-drill',box:{left:34.8,top:48.1,width:27.4,height:6.6}},
+        {key:'cajon-7',n:'7',label:'Brocas y puntas',detalle:'Cajón 7 · brocas y puntas',color:'#92400e',icon:'fa-screwdriver-wrench',box:{left:63.4,top:34.7,width:28.9,height:9.8}},
+        {key:'cajon-8',n:'8',label:'Cintas y adhesivos',detalle:'Cajón 8 · cintas y adhesivos',color:'#eab308',icon:'fa-tape',box:{left:63.4,top:44.6,width:28.9,height:10.0}},
+        {key:'zona-inferior',n:'9',label:'Zona inferior',detalle:'Zona inferior / almacenaje general',color:'#eab308',icon:'fa-boxes-stacked',box:{left:4.7,top:57.2,width:87.7,height:12.6}}
+      ]
     }
   ];
 
   function coincide(perfil, marca, modelo){
-    var m=normalizar(marca), mo=normalizar(modelo);
+    var m=normalizar(marca), mo=normalizar(modelo), combinado=normalizar([marca,modelo].filter(Boolean).join(' '));
     return Array.isArray(perfil.coincidencias) && perfil.coincidencias.some(function(c){
-      var cm=normalizar(c.marca), cmo=normalizar(c.modelo);
-      return (!cm || m.indexOf(cm)!==-1 || cm.indexOf(m)!==-1) && (!cmo || mo.indexOf(cmo)!==-1 || cmo.indexOf(mo)!==-1);
+      var cm=normalizar(c.marca), cmo=normalizar(c.modelo), esperado=normalizar([c.marca,c.modelo].filter(Boolean).join(' '));
+      if(esperado && combinado && (combinado.indexOf(esperado)!==-1 || esperado.indexOf(combinado)!==-1)) return true;
+      var marcaOk=!cm || (m && (m.indexOf(cm)!==-1 || cm.indexOf(m)!==-1)) || (combinado && combinado.indexOf(cm)!==-1);
+      var modeloOk=!cmo || (mo && (mo.indexOf(cmo)!==-1 || cmo.indexOf(mo)!==-1)) || (combinado && combinado.indexOf(cmo)!==-1);
+      return marcaOk && modeloOk;
     });
   }
   function perfilActivo(){
@@ -8176,6 +8210,5 @@ main,
 })();
 </script>
 
-<script src="./js/18-ford-transit-profile.js"></script>
 </body>
 </html>
