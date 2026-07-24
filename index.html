@@ -8000,5 +8000,119 @@ main,
   }
 }
 </style>
+
+
+<style id="epi-ubicaciones-interior-header-fix-20260724">
+:root{--epi-location-top-safe:calc(env(safe-area-inset-top, 0px) + 8px);}
+#modal-mapa-armario-overlay{
+  top:var(--epi-location-top-safe)!important;
+  bottom:var(--epi-nav-visible-height, 82px)!important;
+  height:auto!important;
+  max-height:none!important;
+  padding:0 8px!important;
+  align-items:stretch!important;
+  box-sizing:border-box!important;
+}
+#modal-mapa-armario-overlay > .epi-location-sheet{
+  width:100%!important;
+  max-width:28rem!important;
+  height:100%!important;
+  max-height:100%!important;
+  margin:0 auto!important;
+  border-radius:18px 18px 0 0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+#modal-mapa-armario-overlay .epi-location-header{
+  position:sticky!important;
+  top:0!important;
+  z-index:5!important;
+  flex:none!important;
+}
+#modal-mapa-armario-overlay .epi-location-scroll{
+  min-height:0!important;
+  flex:1 1 auto!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  scroll-padding-bottom:24px!important;
+  padding-bottom:24px!important;
+}
+#modal-mapa-armario-overlay .epi-location-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:5!important;
+  flex:none!important;
+}
+</style>
+<script id="epi-ubicaciones-interior-header-fix-js-20260724">
+(function(){
+  'use strict';
+  function safe(v){
+    try { return typeof window.esc==='function' ? window.esc(v) : String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];}); }
+    catch(e){ return String(v==null?'':v); }
+  }
+  function inventory(){
+    try { if(Array.isArray(window.inventario)) return window.inventario; } catch(e){}
+    try { if(Array.isArray(inventario)) return inventario; } catch(e){}
+    return [];
+  }
+  function zoneFor(item){
+    try { if(typeof window.zonaArmarioDesdeItem==='function') return window.zonaArmarioDesdeItem(item); } catch(e){}
+    try { if(typeof zonaArmarioDesdeItem==='function') return zonaArmarioDesdeItem(item); } catch(e){}
+    return {key:'sin-asignar',label:'Sin zona exacta',detalle:'Edita la ubicación exacta.',color:'#22d3ee',n:'?'};
+  }
+  function zonePhotos(key){
+    if(!key || key==='sin-asignar') return [];
+    try { if(typeof window.fotosZonaPlano==='function') return window.fotosZonaPlano(key)||[]; } catch(e){}
+    try { if(typeof fotosZonaPlano==='function') return fotosZonaPlano(key)||[]; } catch(e){}
+    return [];
+  }
+  function renderMap(zone){
+    try { if(typeof window.renderArmarioInteractivo==='function') return window.renderArmarioInteractivo(zone)||''; } catch(e){console.error(e);}
+    try { if(typeof renderArmarioInteractivo==='function') return renderArmarioInteractivo(zone)||''; } catch(e){console.error(e);}
+    return '<div class="rounded-xl border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">No está disponible el plano del armario.</div>';
+  }
+  function closeMap(){ var el=document.getElementById('modal-mapa-armario-overlay'); if(el) el.remove(); }
+  window.cerrarMapaArmario=closeMap;
+  window.abrirMapaArmarioItem=function(id){
+    var item=inventory().find(function(x){return String(x&&x.id)===String(id);});
+    if(!item){ if(typeof window.feedbackEpi==='function') window.feedbackEpi('Material no encontrado','warn'); return; }
+    var zone=zoneFor(item)||{};
+    var photos=zonePhotos(zone.key);
+    var old=document.getElementById('modal-mapa-armario-overlay'); if(old) old.remove();
+    var overlay=document.createElement('div');
+    overlay.id='modal-mapa-armario-overlay';
+    overlay.className='fixed bg-black/90 z-[9999] flex justify-center';
+    document.body.appendChild(overlay);
+    var exact=item.donde||item.ubicacionFisica||item.ubicacionArmario||item.localizacion||'Ubicación no indicada';
+    var interiorButton=photos.length
+      ? '<button type="button" id="epi-location-interior-btn" class="flex-1 bg-cyan-700 hover:bg-cyan-600 border border-cyan-500 text-white rounded-xl px-3 py-2.5 text-xs font-black"><i class="fa-solid fa-camera mr-1"></i>Ver interior ('+photos.length+')</button>'
+      : '<button type="button" disabled class="flex-1 bg-slate-900 border border-slate-700 text-slate-500 rounded-xl px-3 py-2.5 text-xs font-black"><i class="fa-solid fa-camera mr-1"></i>Sin foto interior</button>';
+    overlay.innerHTML=''
+      +'<div class="epi-location-sheet bg-slate-950 border border-slate-700 shadow-2xl">'
+      +'<div class="epi-location-header p-3 border-b border-slate-800 bg-slate-900 flex items-start justify-between gap-3">'
+      +'<div class="min-w-0"><div class="text-[10px] uppercase tracking-wider font-black text-cyan-400"><i class="fa-solid fa-location-dot mr-1"></i>Ubicación en el armario</div>'
+      +'<div class="text-sm font-black text-slate-100 truncate">'+safe(item.equipo||item.nombre||'Material')+'</div>'
+      +'<div class="text-[11px] text-cyan-300 truncate mt-0.5"><i class="fa-solid fa-map-pin mr-1"></i>'+safe(exact)+'</div></div>'
+      +'<button type="button" id="epi-location-close-btn" aria-label="Cerrar ubicación" class="w-11 h-11 rounded-xl bg-slate-800 border border-slate-600 text-slate-100 shrink-0"><i class="fa-solid fa-xmark text-lg"></i></button></div>'
+      +'<div class="epi-location-scroll p-3 space-y-3">'+renderMap(zone)+'</div>'
+      +'<div class="epi-location-actions p-3 border-t border-slate-800 bg-slate-950 flex items-center gap-2">'
+      +'<button type="button" id="epi-location-close-bottom" class="px-4 bg-slate-900 border border-slate-700 text-slate-200 rounded-xl py-2.5 text-xs font-black">Cerrar</button>'
+      +interiorButton+'</div></div>';
+    overlay.querySelector('#epi-location-close-btn').addEventListener('click',closeMap);
+    overlay.querySelector('#epi-location-close-bottom').addEventListener('click',closeMap);
+    overlay.addEventListener('click',function(ev){ if(ev.target===overlay) closeMap(); });
+    var ib=overlay.querySelector('#epi-location-interior-btn');
+    if(ib) ib.addEventListener('click',function(){
+      if(typeof window.abrirFotoInteriorPlano==='function') window.abrirFotoInteriorPlano(zone.key,0);
+      else if(typeof abrirFotoInteriorPlano==='function') abrirFotoInteriorPlano(zone.key,0);
+      else if(typeof window.feedbackEpi==='function') window.feedbackEpi('No está disponible el visor interior','warn');
+    });
+    if(zone.key==='sin-asignar' && typeof window.feedbackEpi==='function') window.feedbackEpi('No se reconoce la ubicación exacta','warn');
+  };
+  try { abrirMapaArmarioItem=window.abrirMapaArmarioItem; } catch(e){}
+})();
+</script>
 </body>
 </html>
