@@ -4962,6 +4962,8 @@ document.getElementById('material-list').addEventListener('click', function(e) {
             document.getElementById('v-form-anio').value            = d.anio          || '';
             document.getElementById('v-form-marca').value           = d.marca         || '';
             document.getElementById('v-form-modelo').value          = d.modelo        || '';
+            const perfilSelect = document.getElementById('v-form-perfil-armario');
+            if (perfilSelect) perfilSelect.value = d.perfilArmario || 'auto';
             document.getElementById('v-form-km').value              = d.kmActuales    || '';
             document.getElementById('v-form-aceite').value          = d.ultimoCambioAceite || '';
             document.getElementById('v-form-proximo-aceite').value  = d.proximoAceite || '';
@@ -4988,6 +4990,7 @@ document.getElementById('material-list').addEventListener('click', function(e) {
                 anio:               document.getElementById('v-form-anio').value.trim(),
                 marca:              document.getElementById('v-form-marca').value.trim(),
                 modelo:             document.getElementById('v-form-modelo').value.trim(),
+                perfilArmario:      (() => { const c = document.getElementById('v-form-perfil-armario'); return c ? (c.value || 'auto') : 'auto'; })(),
                 kmActuales:         document.getElementById('v-form-km').value.trim(),
                 ultimoCambioAceite: document.getElementById('v-form-aceite').value.trim(),
                 proximoAceite:      document.getElementById('v-form-proximo-aceite').value.trim(),
@@ -5330,6 +5333,17 @@ document.getElementById('material-list').addEventListener('click', function(e) {
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Modelo</label>
                     <input type="text" id="v-form-modelo" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
                 </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Perfil de armario</label>
+                <select id="v-form-perfil-armario" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500">
+                    <option value="auto">Automático según marca y modelo</option>
+                    <option value="volkswagen-caddy-armario-original">Volkswagen Caddy · Armario original</option>
+                    <option value="ford-transit-armario-herramientas">Ford Transit · Armario de herramientas</option>
+                    <option value="volkswagen-transporter-armario-a">Volkswagen Transporter · Armario A (imagen pendiente)</option>
+                    <option value="volkswagen-transporter-armario-b">Volkswagen Transporter · Armario B (imagen pendiente)</option>
+                </select>
+                <p class="mt-1 text-[10px] leading-relaxed text-slate-500">Usa Automático en los modelos con un solo armario. Para las dos Transporter selecciona manualmente A o B.</p>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-1">Kilómetros actuales</label>
@@ -8105,6 +8119,24 @@ main,
       zonas: zonasOriginales
     },
     {
+      id: 'volkswagen-transporter-armario-a',
+      nombre: 'Volkswagen Transporter · Armario A',
+      descripcion: 'Perfil reservado para la primera Volkswagen Transporter. Imagen y zonas definitivas pendientes.',
+      coincidencias: [],
+      imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
+      zonas: zonasOriginales,
+      pendiente: true
+    },
+    {
+      id: 'volkswagen-transporter-armario-b',
+      nombre: 'Volkswagen Transporter · Armario B',
+      descripcion: 'Perfil reservado para la segunda Volkswagen Transporter. Imagen y zonas definitivas pendientes.',
+      coincidencias: [],
+      imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
+      zonas: zonasOriginales,
+      pendiente: true
+    },
+    {
       id: 'ford-transit-armario-herramientas',
       nombre: 'Ford Transit · Armario de herramientas',
       descripcion: 'Armario de herramientas específico para Ford Transit',
@@ -8149,10 +8181,15 @@ main,
   }
   function perfilActivo(){
     var d=datosActuales();
-    var encontrado=perfiles.find(function(p){ return p.id!=='armario-actual' && coincide(p,d.marca,d.modelo); });
-    if(encontrado) return Object.assign({esGenerico:false},encontrado);
+    var seleccion=String(d.perfilArmario||'auto');
+    if(seleccion && seleccion!=='auto'){
+      var manual=perfiles.find(function(p){ return p.id===seleccion; });
+      if(manual) return Object.assign({esGenerico:false,seleccionManual:true},manual);
+    }
+    var encontrado=perfiles.find(function(p){ return p.id!=='armario-actual' && !p.pendiente && coincide(p,d.marca,d.modelo); });
+    if(encontrado) return Object.assign({esGenerico:false,seleccionManual:false},encontrado);
     var base=perfiles.find(function(p){return p.id==='armario-actual';}) || perfiles[0];
-    return Object.assign({esGenerico:true},base||{id:'sin-plano',nombre:'Sin plano',imagen:'',zonas:[]});
+    return Object.assign({esGenerico:true,seleccionManual:false},base||{id:'sin-plano',nombre:'Sin plano',imagen:'',zonas:[]});
   }
   window.obtenerPerfilPlanoFurgoneta = perfilActivo;
   window.registrarPerfilPlanoFurgoneta = function(perfil){
@@ -8182,7 +8219,9 @@ main,
         var veh=[d.marca,d.modelo].filter(Boolean).join(' ') || 'Furgoneta sin marca/modelo';
         var aviso=p.esGenerico
           ? '<div class="rounded-xl border border-amber-700/70 bg-amber-950/30 p-3 text-[11px] text-amber-200"><div class="font-black"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Plano genérico</div><div class="mt-1 text-amber-100/80">Todavía no hay un plano específico para '+esc(veh)+'. Se muestra el armario actual.</div></div>'
-          : '<div class="rounded-xl border border-emerald-700/70 bg-emerald-950/30 p-3 text-[11px] text-emerald-200"><div class="font-black"><i class="fa-solid fa-truck-ramp-box mr-1"></i>'+esc(p.nombre)+'</div><div class="mt-1 text-emerald-100/80">Perfil detectado para '+esc(veh)+'.</div></div>';
+          : p.pendiente
+          ? '<div class="rounded-xl border border-violet-700/70 bg-violet-950/30 p-3 text-[11px] text-violet-200"><div class="font-black"><i class="fa-solid fa-images mr-1"></i>'+esc(p.nombre)+'</div><div class="mt-1 text-violet-100/80">Perfil asignado. La imagen y las zonas definitivas se añadirán más adelante.</div></div>'
+          : '<div class="rounded-xl border border-emerald-700/70 bg-emerald-950/30 p-3 text-[11px] text-emerald-200"><div class="font-black"><i class="fa-solid fa-truck-ramp-box mr-1"></i>'+esc(p.nombre)+'</div><div class="mt-1 text-emerald-100/80">'+(p.seleccionManual?'Perfil asignado manualmente.':'Perfil detectado para '+esc(veh)+'.')+'</div></div>';
         return html.replace('<div class="space-y-3">','<div class="space-y-3">'+aviso);
       };
       window.renderArmarioInteractivo=renderArmarioInteractivo;
@@ -8200,7 +8239,9 @@ main,
       cont.appendChild(linea);
     }
     var p=perfilActivo();
-    linea.innerHTML='<span class="text-slate-400">Plano de ubicaciones:</span> <span class="'+(p.esGenerico?'text-amber-300':'text-emerald-300')+' font-bold">'+esc(p.esGenerico?'Genérico · pendiente de imagen específica':p.nombre)+'</span>';
+    var clase=p.esGenerico?'text-amber-300':(p.pendiente?'text-violet-300':'text-emerald-300');
+    var nombre=p.esGenerico?'Genérico · pendiente de imagen específica':p.nombre+(p.pendiente?' · imagen pendiente':'');
+    linea.innerHTML='<span class="text-slate-400">Plano de ubicaciones:</span> <span class="'+clase+' font-bold">'+esc(nombre)+'</span>';
   }
   try {
     var actualizarOriginal=actualizarTarjetaVehiculo;
