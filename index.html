@@ -4885,6 +4885,19 @@ document.getElementById('material-list').addEventListener('click', function(e) {
 })();
 </script>
 
+
+<style id="epi-card-height-fix-20260724">
+/* Estas tarjetas conservan su contenido, pero no heredan el gran espacio inferior reservado para la navegación. */
+#home-panel{
+  padding-bottom:0.625rem!important;
+  scroll-padding-bottom:0!important;
+}
+#tarjeta-vehiculo{
+  padding-bottom:0!important;
+  scroll-padding-bottom:0!important;
+}
+</style>
+
 </body></html>`;
                         const blob = new Blob([tabla], { type: 'application/vnd.ms-excel;charset=utf-8' });
                         const nombreFallback = `EPI-Check_Export_${nombreSeccion}${nombreFiltro}_${fecha}.xls`;
@@ -8289,6 +8302,19 @@ main,
   document.addEventListener('DOMContentLoaded',mostrarPerfilEnTarjeta,{once:true});
 })();
 </script>
+
+
+<style id="epi-card-height-fix-20260724">
+/* Estas tarjetas conservan su contenido, pero no heredan el gran espacio inferior reservado para la navegación. */
+#home-panel{
+  padding-bottom:0.625rem!important;
+  scroll-padding-bottom:0!important;
+}
+#tarjeta-vehiculo{
+  padding-bottom:0!important;
+  scroll-padding-bottom:0!important;
+}
+</style>
 
 </body>
 </html>
