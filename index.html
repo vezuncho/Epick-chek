@@ -8083,9 +8083,24 @@ main,
   var perfiles = window.EPICHECK_PLANOS_REGISTRY = window.EPICHECK_PLANOS_REGISTRY || [
     {
       id: 'armario-actual',
-      nombre: 'Armario actual',
-      descripcion: 'Plano actualmente incluido en EPI-Check',
+      nombre: 'Plano genérico actual',
+      descripcion: 'Plano genérico usado cuando la furgoneta no tiene un armario específico asociado',
       coincidencias: [],
+      imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
+      zonas: zonasOriginales
+    },
+    {
+      id: 'volkswagen-caddy-armario-original',
+      nombre: 'Volkswagen Caddy · Armario original',
+      descripcion: 'Armario original de la Volkswagen Caddy',
+      coincidencias: [
+        {marca:'Volkswagen', modelo:'Caddy'},
+        {marca:'VW', modelo:'Caddy'},
+        {marca:'Volkswagen Caddy', modelo:''},
+        {marca:'VW Caddy', modelo:''},
+        {marca:'', modelo:'Volkswagen Caddy'},
+        {marca:'', modelo:'VW Caddy'}
+      ],
       imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
       zonas: zonasOriginales
     },
