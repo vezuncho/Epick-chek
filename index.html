@@ -7501,7 +7501,386 @@ ${error.message}`);
 })();
 </script>
 
-<script src="js/17-supabase-photos.js?v=20260724-4"></script>
+<script id="epi-supabase-photos-inline-v4">
+/* ================================================================
+   EPI-CHECK · SUPABASE STORAGE · FOTOS v3
+   - Bucket privado: Epi-check-file
+   - IndexedDB conserva la copia local/offline
+   - Cola persistente para subidas y borrados pendientes
+   - Reintentos automáticos al recuperar conexión o sesión
+   - Migración de fotos existentes y restauración en otro dispositivo
+   - Estado detallado: locales, nube, pendientes y errores
+   ================================================================ */
+(function(){
+  'use strict';
+
+  const BUCKET = 'Epi-check-file';
+  const MAP_KEY = 'app_epicheck_photo_cloud_map';
+  const PLAN_META_KEY = 'app_epicheck_cloud_plan_photos';
+  const QUEUE_KEY = 'app_epicheck_photo_sync_queue_v3';
+  const LAST_PHOTO_SYNC_KEY = 'app_epicheck_cloud_last_photo_sync';
+  const MAX_PARALLEL = 2;
+  const MAX_RETRIES = 5;
+  let syncing = false;
+  let hooksInstalled = false;
+  let retryTimer = null;
+  let suppressAutoUpload = false;
+
+  function api(){ return window.EpiCloud || null; }
+  function client(){ return api() && api().client ? api().client : null; }
+  function user(){ return api() && typeof api().getUser === 'function' ? api().getUser() : null; }
+  function diagnostic(){
+    return {
+      session: !!user(),
+      client: !!client(),
+      online: navigator.onLine,
+      indexedDB: typeof window.leerFotoDB === 'function',
+      bucket: BUCKET
+    };
+  }
+  function safe(v){ return String(v || 'sin-id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,100) || 'archivo'; }
+  function loadJson(key, fallback){ try { const raw=localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(_){ return fallback; } }
+  function saveJson(key, value, notify=true){ localStorage.setItem(key, JSON.stringify(value)); if(notify && api() && typeof api().scheduleSync === 'function') api().scheduleSync('fotos'); }
+  function getMap(){ return loadJson(MAP_KEY, {}); }
+  function setMap(map){ saveJson(MAP_KEY, map); }
+  function getQueue(){ return loadJson(QUEUE_KEY, []); }
+  function setQueue(queue){ saveJson(QUEUE_KEY, queue, false); updatePanel(); }
+  function now(){ return new Date().toISOString(); }
+  function friendly(value){ if(!value) return 'Nunca'; const d=new Date(value); return Number.isNaN(d.getTime()) ? 'Nunca' : d.toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'}); }
+
+  function dataUrlToBlob(data){
+    const [head, body] = String(data || '').split(',');
+    if(!head || body == null) throw new Error('Imagen local no válida');
+    const mime = (head.match(/data:([^;]+)/)||[])[1] || 'image/jpeg';
+    const bytes = atob(body); const arr = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    return new Blob([arr], {type:mime});
+  }
+  function blobToDataUrl(blob){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(String(r.result||'')); r.onerror=()=>reject(r.error||new Error('No se pudo leer la imagen')); r.readAsDataURL(blob); }); }
+
+  function typeFolder(meta={}){
+    if(meta.tipo === 'ubicacion') return 'ubicaciones';
+    if(meta.tipo === 'inspeccion') return 'inspecciones';
+    if(meta.tipo === 'epi') return 'epis';
+    return 'materiales';
+  }
+  function cloudPathFor(photoId, meta={}){
+    const u=user(); if(!u) throw new Error('Inicia sesión para subir fotos.');
+    const owner = safe(meta.itemId || meta.zona || meta.inspeccionId || 'general');
+    const ext = String(meta.mime || '').includes('webp') ? 'webp' : String(meta.mime || '').includes('png') ? 'png' : 'jpg';
+    return `${u.id}/${typeFolder(meta)}/${owner}/${safe(photoId)}.${ext}`;
+  }
+
+  function queueUpsert(job){
+    const queue=getQueue();
+    const idx=queue.findIndex(x=>x && x.key===job.key);
+    const normalized={attempts:0,lastError:'',createdAt:now(),...job,updatedAt:now()};
+    if(idx>=0) queue[idx]={...queue[idx],...normalized}; else queue.push(normalized);
+    setQueue(queue);
+    scheduleRetry(800);
+  }
+  function queueRemove(key){ setQueue(getQueue().filter(x=>x && x.key!==key)); }
+  function queueFail(key,error){
+    const queue=getQueue(); const idx=queue.findIndex(x=>x && x.key===key); if(idx<0) return;
+    queue[idx].attempts=Number(queue[idx].attempts||0)+1;
+    queue[idx].lastError=String(error && error.message ? error.message : error || 'Error desconocido').slice(0,300);
+    queue[idx].updatedAt=now(); setQueue(queue);
+  }
+
+  async function uploadData(photoId, data, meta={}, force=false){
+    const c=client(), u=user();
+    if(!c || !u || !navigator.onLine) return null;
+    const map=getMap();
+    if(!force && map[photoId] && map[photoId].path) return map[photoId];
+    const blob=dataUrlToBlob(data);
+    const path=map[photoId] && map[photoId].path ? map[photoId].path : cloudPathFor(photoId,{...meta,mime:blob.type});
+    const {error}=await c.storage.from(BUCKET).upload(path, blob, {contentType:blob.type || 'image/jpeg', upsert:true, cacheControl:'3600'});
+    if(error) throw error;
+    map[photoId]={
+      path, tipo:meta.tipo||'material', itemId:meta.itemId||'', zona:meta.zona||'', inspeccionId:meta.inspeccionId||'',
+      nombre:meta.nombre||'', size:blob.size, mime:blob.type||'image/jpeg', updatedAt:now()
+    };
+    setMap(map); localStorage.setItem(LAST_PHOTO_SYNC_KEY,now());
+    queueRemove(`upload:${photoId}`); updatePanel();
+    return map[photoId];
+  }
+
+  async function downloadByPhotoId(photoId){
+    const c=client(); if(!c) return '';
+    const entry=getMap()[photoId]; if(!entry || !entry.path) return '';
+    const {data,error}=await c.storage.from(BUCKET).download(entry.path);
+    if(error) throw error;
+    return await blobToDataUrl(data);
+  }
+
+  async function deleteCloudPhoto(photoId){
+    const c=client(); const map=getMap(), entry=map[photoId];
+    if(!entry || !entry.path){ queueRemove(`delete:${photoId}`); return; }
+    if(!c || !user() || !navigator.onLine){ queueUpsert({key:`delete:${photoId}`,action:'delete',photoId,path:entry.path}); return; }
+    const {error}=await c.storage.from(BUCKET).remove([entry.path]);
+    if(error) throw error;
+    delete map[photoId]; setMap(map); queueRemove(`delete:${photoId}`); updatePanel();
+  }
+
+  async function readLocalPhoto(photoId){
+    if(!photoId || typeof window.leerFotoDB!=='function') return '';
+    try{return await window.leerFotoDB(photoId);}catch(_){return '';}
+  }
+
+  async function processQueue(){
+    if(syncing || !navigator.onLine || !user() || !client()) return;
+    const queue=getQueue().filter(j=>j && Number(j.attempts||0)<MAX_RETRIES);
+    if(!queue.length){ updatePanel(); return; }
+    syncing=true; updatePanel('Procesando pendientes…');
+    try{
+      for(const job of queue){
+        try{
+          if(job.action==='delete') await deleteCloudPhoto(job.photoId);
+          else if(job.action==='upload'){
+            const data=await readLocalPhoto(job.photoId);
+            if(!data) throw new Error('La foto local ya no está disponible');
+            await uploadData(job.photoId,data,job.meta||{},true);
+          }
+        }catch(err){ console.warn('Cola de fotos:',job,err); queueFail(job.key,err); }
+      }
+    }finally{ syncing=false; localStorage.setItem(LAST_PHOTO_SYNC_KEY,now()); updatePanel(); }
+  }
+
+  function scheduleRetry(delay=2500){
+    clearTimeout(retryTimer);
+    retryTimer=setTimeout(()=>processQueue().catch(err=>console.warn('Reintento fotos:',err)),delay);
+  }
+
+  function installHooks(){
+    if(hooksInstalled) return; hooksInstalled=true;
+    if(typeof window.guardarFotoDB === 'function'){
+      const original=window.guardarFotoDB;
+      window.guardarFotoDB=async function(photoId,data,meta={}){
+        const result=await original.apply(this,arguments);
+        if(!suppressAutoUpload){
+          queueUpsert({key:`upload:${photoId}`,action:'upload',photoId,meta});
+          uploadData(photoId,data,meta).catch(err=>{ queueFail(`upload:${photoId}`,err); updatePanel('Foto pendiente'); });
+        }
+        return result;
+      };
+    }
+    if(typeof window.resolverDataFoto === 'function'){
+      const original=window.resolverDataFoto;
+      window.resolverDataFoto=async function(foto){
+        let local=''; try{local=await original.apply(this,arguments);}catch(_){ }
+        if(local) return local;
+        if(!foto || !foto.photoId) return '';
+        try{
+          const data=await downloadByPhotoId(foto.photoId);
+          if(data && typeof window.guardarFotoDB==='function'){
+            suppressAutoUpload=true;
+            try{await window.guardarFotoDB(foto.photoId,data,{tipo:'material',nombre:foto.nombre||'foto.jpg'});}finally{suppressAutoUpload=false;}
+          }
+          return data;
+        }catch(err){console.warn('No se pudo recuperar foto:',err);return '';}
+      };
+    }
+    if(typeof window.borrarFotoDB === 'function'){
+      const original=window.borrarFotoDB;
+      window.borrarFotoDB=async function(photoId){
+        const result=await original.apply(this,arguments);
+        deleteCloudPhoto(photoId).catch(err=>{queueUpsert({key:`delete:${photoId}`,action:'delete',photoId});queueFail(`delete:${photoId}`,err);});
+        return result;
+      };
+    }
+    if(typeof window.guardarFotosPlanoFurgoneta === 'function'){
+      const original=window.guardarFotosPlanoFurgoneta;
+      window.guardarFotosPlanoFurgoneta=function(fotos){
+        const result=original.apply(this,arguments);
+        if(!suppressAutoUpload) syncPlanObject(fotos||{}).catch(err=>console.warn('Fotos de zonas pendientes:',err));
+        return result;
+      };
+    }
+  }
+
+  async function syncPlanObject(fotos){
+    const metadata=loadJson(PLAN_META_KEY,{});
+    for(const [zona,arr] of Object.entries(fotos||{})){
+      metadata[zona]=[];
+      const list=Array.isArray(arr)?arr:[];
+      for(let i=0;i<list.length;i++){
+        const f=list[i]; if(!f) continue;
+        const photoId=f.photoId || `zona_${safe(zona)}_${Date.now()}_${i}_${Math.random().toString(36).slice(2,7)}`;
+        f.photoId=photoId;
+        const meta={tipo:'ubicacion',zona,nombre:f.nombre||'foto-interior.jpg'};
+        if(f.data){
+          queueUpsert({key:`upload:${photoId}`,action:'upload',photoId,meta});
+          try{await uploadData(photoId,f.data,meta);}catch(err){queueFail(`upload:${photoId}`,err);}
+        }
+        const entry=getMap()[photoId];
+        metadata[zona].push({photoId,cloudPath:entry&&entry.path||'',nombre:f.nombre||'',fecha:f.fecha||'',sizeBytes:f.sizeBytes||(entry&&entry.size)||0});
+      }
+    }
+    saveJson(PLAN_META_KEY,metadata);
+  }
+
+  async function inventoryPhotos(){
+    const inv=typeof window.__epiGetInventario==='function' ? window.__epiGetInventario() : [];
+    const list=[];
+    for(const item of inv||[]) for(const f of (Array.isArray(item.fotos)?item.fotos:[])) if(f&&f.photoId) list.push({item,f});
+    return list;
+  }
+
+  async function migrateAll(){
+    if(syncing) return;
+    if(!user()) throw new Error('Inicia sesión primero.');
+    if(!navigator.onLine) throw new Error('No hay conexión.');
+    if(typeof window.leerFotoDB !== 'function') throw new Error('No se pudo acceder al almacén local de fotos. Cierra completamente la app y vuelve a abrirla.');
+    syncing=true; updatePanel('Preparando fotos…');
+    try{
+      const photos=await inventoryPhotos(); let processed=0;
+      const jobs=photos.filter(({f})=>!getMap()[f.photoId]).map(({item,f})=>async()=>{
+        const data=await readLocalPhoto(f.photoId);
+        if(data){
+          const tipo=String(item.tipo||item.categoria||'').toLowerCase().includes('epi') ? 'epi' : 'material';
+          const meta={tipo,itemId:item.id,nombre:f.nombre||'foto.jpg'};
+          queueUpsert({key:`upload:${f.photoId}`,action:'upload',photoId:f.photoId,meta});
+          await uploadData(f.photoId,data,meta);
+        }
+      });
+      for(let i=0;i<jobs.length;i+=MAX_PARALLEL){
+        await Promise.allSettled(jobs.slice(i,i+MAX_PARALLEL).map(fn=>fn()));
+        processed=Math.min(i+MAX_PARALLEL,jobs.length); updatePanel(`Subiendo ${processed}/${jobs.length}`);
+      }
+      if(typeof window.cargarFotosPlanoDesdeIndexedDB==='function'){
+        const plan=await window.cargarFotosPlanoDesdeIndexedDB(); await syncPlanObject(plan||{});
+      }
+      await processQueue();
+      if(api() && typeof api().uploadState==='function') await api().uploadState({manual:false,skipConfirm:true});
+      localStorage.setItem(LAST_PHOTO_SYNC_KEY,now()); updatePanel('Sincronización terminada');
+      const stats=await getStats();
+      alert(`✅ Fotos sincronizadas con Supabase.\n\nFotos locales: ${stats.local}\nFotos enlazadas en la nube: ${stats.cloud}\nPendientes: ${stats.pending}\nErrores: ${stats.errors}`);
+    }finally{syncing=false;updatePanel();}
+  }
+
+  async function restorePlanPhotos(){
+    if(!user()) return 0;
+    const meta=loadJson(PLAN_META_KEY,{}); if(!Object.keys(meta).length) return 0;
+    const result={}; let count=0;
+    for(const [zona,arr] of Object.entries(meta)){
+      result[zona]=[];
+      for(const f of (Array.isArray(arr)?arr:[])){
+        try{const data=await downloadByPhotoId(f.photoId);if(data){result[zona].push({...f,data});count++;}}catch(err){console.warn('Foto zona no recuperada',f,err);}
+      }
+    }
+    if(count && typeof window.guardarFotosPlanoFurgoneta==='function'){
+      suppressAutoUpload=true;
+      try{window.guardarFotosPlanoFurgoneta(result);}finally{suppressAutoUpload=false;}
+    }
+    return count;
+  }
+
+  async function restoreMaterialPhotos(silent=false){
+    if(!user()) return 0;
+    const photos=await inventoryPhotos(); let count=0;
+    for(const {item,f} of photos){
+      if(await readLocalPhoto(f.photoId)) continue;
+      try{
+        const data=await downloadByPhotoId(f.photoId);
+        if(data && typeof window.guardarFotoDB==='function'){
+          suppressAutoUpload=true;
+          try{await window.guardarFotoDB(f.photoId,data,{tipo:'material',itemId:item.id,nombre:f.nombre||'foto.jpg'});}finally{suppressAutoUpload=false;}
+          count++;
+        }
+      }catch(err){if(!silent) console.warn('Foto no recuperada',f.photoId,err);}
+    }
+    return count;
+  }
+
+  async function getStats(){
+    const itemPhotos=await inventoryPhotos();
+    let planCount=0;
+    try{if(typeof window.cargarFotosPlanoDesdeIndexedDB==='function'){const p=await window.cargarFotosPlanoDesdeIndexedDB();planCount=Object.values(p||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);}}catch(_){ }
+    const queue=getQueue();
+    return {
+      local:itemPhotos.length+planCount,
+      cloud:Object.keys(getMap()).length,
+      pending:queue.filter(j=>Number(j.attempts||0)<MAX_RETRIES).length,
+      errors:queue.filter(j=>Number(j.attempts||0)>=MAX_RETRIES).length,
+      last:localStorage.getItem(LAST_PHOTO_SYNC_KEY)
+    };
+  }
+
+  async function updatePanel(status){
+    const box=document.getElementById('epi-cloud-photos-card'); if(!box) return;
+    const stats=await getStats().catch(()=>({local:0,cloud:Object.keys(getMap()).length,pending:getQueue().length,errors:0,last:null}));
+    const info=document.getElementById('epi-cloud-photos-info');
+    if(info) info.textContent=status || `Última sincronización: ${friendly(stats.last)}`;
+    const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val);};
+    set('epi-photo-local-count',stats.local);set('epi-photo-cloud-count',stats.cloud);set('epi-photo-pending-count',stats.pending);set('epi-photo-error-count',stats.errors);
+  }
+
+  function ensurePanel(){
+    const logged=document.getElementById('epi-cloud-logged-in'); if(!logged || document.getElementById('epi-cloud-photos-card')) return;
+    const card=document.createElement('div'); card.id='epi-cloud-photos-card'; card.className='rounded-2xl border border-cyan-800/70 bg-cyan-950/25 p-3 space-y-3';
+    card.innerHTML=`
+      <div class="flex items-center gap-2"><i class="fa-solid fa-images text-cyan-300"></i><div class="font-black text-xs text-cyan-100">Fotos en Supabase Storage</div></div>
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-2"><div id="epi-photo-local-count" class="text-lg font-black text-white">0</div><div class="text-[9px] uppercase text-slate-500">Locales</div></div>
+        <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-2"><div id="epi-photo-cloud-count" class="text-lg font-black text-cyan-300">0</div><div class="text-[9px] uppercase text-slate-500">En Supabase</div></div>
+        <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-2"><div id="epi-photo-pending-count" class="text-lg font-black text-amber-300">0</div><div class="text-[9px] uppercase text-slate-500">Pendientes</div></div>
+        <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-2"><div id="epi-photo-error-count" class="text-lg font-black text-red-300">0</div><div class="text-[9px] uppercase text-slate-500">Errores</div></div>
+      </div>
+      <div id="epi-cloud-photos-info" class="text-[11px] text-cyan-200/75">Comprobando…</div>
+      <button type="button" onclick="sincronizarFotosSupabaseEpiCheck()" class="w-full rounded-xl bg-cyan-700 px-3 py-3 text-xs font-black text-white"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar ahora</button>
+      <button type="button" onclick="recuperarFotosSupabaseEpiCheck()" class="w-full rounded-xl border border-cyan-700 bg-slate-950/50 px-3 py-3 text-xs font-bold text-cyan-200"><i class="fa-solid fa-cloud-arrow-down mr-1"></i> Recuperar fotos en este móvil</button>
+      <button type="button" onclick="reintentarErroresFotosSupabaseEpiCheck()" class="w-full rounded-xl border border-amber-700 bg-amber-950/20 px-3 py-3 text-xs font-bold text-amber-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Reintentar pendientes y errores</button>
+      <p class="text-[10px] leading-relaxed text-slate-500">Las fotos se guardan primero en el móvil. Si no hay internet, quedan en cola y se suben cuando vuelve la conexión.</p>`;
+    const logout=logged.querySelector('button[onclick="cerrarSesionNubeEpiCheck()"]'); logged.insertBefore(card,logout||null); updatePanel();
+  }
+
+  window.sincronizarFotosSupabaseEpiCheck=async()=>{
+    try { return await migrateAll(); }
+    catch(err){
+      console.error('Sincronización de fotos:',err,diagnostic());
+      alert(`No se pudieron sincronizar las fotos:
+${err.message}
+
+Diagnóstico: sesión ${user()?'OK':'NO'}, conexión ${navigator.onLine?'OK':'NO'}, fotos locales ${typeof window.leerFotoDB==='function'?'OK':'NO'}.`);
+      updatePanel('Error de sincronización');
+      throw err;
+    }
+  };
+  window.diagnosticoFotosSupabaseEpiCheck=diagnostic;
+  window.recuperarFotosSupabaseEpiCheck=async()=>{
+    try{
+      if(!user()) throw new Error('Inicia sesión primero.');
+      updatePanel('Recuperando fotos…');
+      const items=await restoreMaterialPhotos();
+      const zones=await restorePlanPhotos();
+      localStorage.setItem(LAST_PHOTO_SYNC_KEY,now()); updatePanel('Recuperación terminada');
+      alert(`✅ Fotos recuperadas.\n\nMateriales y EPIs: ${items}\nFotos interiores: ${zones}`);
+      if(typeof window.renderApp==='function') window.renderApp();
+    }catch(err){console.error(err);alert(`No se pudieron recuperar las fotos:\n${err.message}`);updatePanel('Error al recuperar');}
+  };
+  window.reintentarErroresFotosSupabaseEpiCheck=async()=>{
+    const q=getQueue().map(j=>({...j,attempts:0,lastError:''})); setQueue(q);
+    await processQueue(); updatePanel();
+    const s=await getStats(); alert(`Reintento terminado.\n\nPendientes: ${s.pending}\nErrores: ${s.errors}`);
+  };
+
+  async function autoRestore(){
+    if(!user() || !navigator.onLine) return;
+    await restoreMaterialPhotos(true);
+    await restorePlanPhotos();
+    updatePanel();
+  }
+  function init(){
+    installHooks(); ensurePanel(); updatePanel(); scheduleRetry(1200);
+    if(user()) autoRestore().catch(()=>{});
+  }
+  window.addEventListener('online',()=>scheduleRetry(300));
+  window.addEventListener('epicheck-cloud-ready',init);
+  window.addEventListener('epicheck-cloud-session',()=>{ensurePanel();updatePanel();scheduleRetry(500);autoRestore().catch(()=>{});});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500),{once:true}); else setTimeout(init,500);
+})();
+
+</script>
 
 <style id="epi-nav-persistente-limpio-20260720">
   :root{--epi-nav-safe:env(safe-area-inset-bottom,0px);--epi-nav-total:calc(88px + var(--epi-nav-safe));}
