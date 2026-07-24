@@ -391,28 +391,26 @@
     <main class="max-w-md mx-auto px-4 mt-4">
 
         <!-- Inicio reorganizado: menos repetición, solo estado útil + acción principal -->
-        <section id="home-panel" class="mb-3 bg-slate-900/90 border border-slate-700 rounded-xl p-2.5 shadow-md">
+        <section id="home-panel" class="mb-3 bg-slate-900/90 border border-slate-700 rounded-2xl px-3 py-2 shadow-md">
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
-                    <p class="text-[9px] uppercase tracking-wider text-slate-400 font-black">Estado de hoy</p>
-                    <h2 class="text-sm font-black text-slate-100 leading-tight">Control listo para revisar</h2>
-                    <p id="home-status-line" class="text-[10px] text-slate-400 mt-0.5 font-semibold leading-tight">Sin accesos duplicados: usa la barra inferior para Calendario y Dashboard.</p>
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400 font-black">Estado de hoy</p>
+                    <h2 class="text-base font-black text-slate-100 leading-tight">Control listo para revisar</h2>
+                    <p id="home-status-line" class="text-xs text-slate-400 mt-0.5 font-semibold leading-tight">Sin accesos duplicados: usa la barra inferior para Calendario y Dashboard.</p>
                 </div>
-                <div id="home-incidencias-badge" class="flex-shrink-0 bg-red-950/50 border border-red-800 text-red-300 rounded-lg px-2.5 py-1.5 text-center">
-                    <div class="text-base leading-none font-black">0</div>
-                    <div class="text-[8px] uppercase font-bold mt-0.5">Incidencias</div>
+                <div id="home-incidencias-badge" class="flex-shrink-0 bg-red-950/50 border border-red-800 text-red-300 rounded-xl px-2.5 py-1.5 text-center">
+                    <div class="text-lg font-black">0</div>
+                    <div class="text-[9px] uppercase font-bold">Incidencias</div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mt-2">
-                <button onclick="abrirInspeccionRapida()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black py-2 px-2 rounded-lg shadow-md flex items-center justify-center gap-1.5 transition-all text-[11px]">
-                    <i class="fa-solid fa-play"></i> Inspección
-                </button>
+            <button onclick="abrirInspeccionRapida()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-play"></i> Comenzar inspección
+            </button>
 
-                <button onclick="abrirModoEncontrarMaterial()" class="bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] text-white font-black py-2 px-2 rounded-lg shadow-md flex items-center justify-center gap-1.5 transition-all border border-cyan-500/70 text-[11px]">
-                    <i class="fa-solid fa-location-crosshairs"></i> Encontrar
-                </button>
-            </div>
+            <button onclick="abrirModoEncontrarMaterial()" class="w-full mt-1.5 bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] text-white font-black py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all border border-cyan-500/70">
+                <i class="fa-solid fa-location-crosshairs"></i> Encontrar material
+            </button>
 
             <!-- Datos ocultos para mantener la lógica de resumen sin duplicarlos en pantalla -->
             <div class="hidden">
@@ -528,14 +526,14 @@
         <!-- Tarjeta vehículo — solo visible en pestaña Furgoneta -->
         <div id="tarjeta-vehiculo" class="hidden mb-3 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
             <div class="flex justify-between items-center px-3 py-2 bg-slate-750 border-b border-slate-700">
-                <h3 class="font-bold text-sm text-slate-100 flex items-center gap-1.5">
-                    <i class="fa-solid fa-truck-ramp-box text-sky-400 text-xs"></i> Datos del Vehículo
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-truck-ramp-box text-sky-400"></i> Datos del Vehículo
                 </h3>
-                <button onclick="abrirModalVehiculo()" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded-md font-semibold flex items-center gap-1">
-                    <i class="fa-solid fa-pen-to-square text-sky-400 text-[10px]"></i> Editar
+                <button onclick="abrirModalVehiculo()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-sky-400 text-xs"></i> Editar
                 </button>
             </div>
-            <div class="px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] leading-tight" id="vehiculo-info">
+            <div class="px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs leading-tight" id="vehiculo-info">
                 <div><span class="text-slate-400">Matrícula:</span> <span class="text-slate-100 font-bold" id="v-matricula">—</span></div>
                 <div><span class="text-slate-400">Estado:</span> <span class="text-emerald-400 font-bold" id="v-estado-vehiculo">OK</span></div>
                 <div><span class="text-slate-400">Marca / Modelo:</span> <span class="text-slate-100" id="v-marca-modelo">—</span></div>
@@ -4772,159 +4770,6 @@ document.getElementById('material-list').addEventListener('click', function(e) {
                         // Fallback sin librería externa: archivo .xls compatible con Excel/Sheets.
                         const columnas = Object.keys(filas[0] || {});
                         const tabla = `<!doctype html><html><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${columnas.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas.map(f => `<tr>${columnas.map(c => `<td>${esc(f[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>
-<script id="epi-perfiles-furgoneta-v1">
-(function(){
-  'use strict';
-  function normalizar(texto){
-    return String(texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  }
-  function datosActuales(){
-    try { if (typeof datosVehiculo !== 'undefined' && datosVehiculo) return datosVehiculo; } catch(_) {}
-    try { return JSON.parse(localStorage.getItem('app_epicheck_vehiculo')||'{}')||{}; } catch(_) { return {}; }
-  }
-  var zonasOriginales;
-  try { zonasOriginales = zonasArmarioBase(); } catch(_) { zonasOriginales = []; }
-  var renderOriginal;
-  try { renderOriginal = renderArmarioInteractivo; } catch(_) { renderOriginal = null; }
-
-  /* Biblioteca de planos. Para añadir otro posteriormente basta con incorporar
-     un objeto con id, nombre, coincidencias de marca/modelo, imagen y zonas. */
-  var perfiles = window.EPICHECK_PLANOS_REGISTRY = window.EPICHECK_PLANOS_REGISTRY || [
-    {
-      id: 'ford-transit-armario-herramientas',
-      nombre: 'Ford Transit · Armario de herramientas',
-      descripcion: 'Armario de herramientas específico para Ford Transit',
-      coincidencias: [
-        { marca: 'Ford', modelo: 'Transit' }
-      ],
-      imagen: './ford-transit-armario-herramientas.png',
-      zonas: [
-        { key:'bandeja-1', n:'1', label:'Bandeja organizadora 1', detalle:'Organizador superior 1', color:'#164e9a', icon:'fa-layer-group', box:{left:5.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-2', n:'2', label:'Bandeja organizadora 2', detalle:'Organizador superior 2', color:'#164e9a', icon:'fa-layer-group', box:{left:14.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-3', n:'3', label:'Bandeja organizadora 3', detalle:'Organizador superior 3', color:'#164e9a', icon:'fa-layer-group', box:{left:24.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-4', n:'4', label:'Bandeja organizadora 4', detalle:'Organizador superior 4', color:'#164e9a', icon:'fa-layer-group', box:{left:35.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-5', n:'5', label:'Bandeja organizadora 5', detalle:'Organizador superior 5', color:'#164e9a', icon:'fa-layer-group', box:{left:45.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-6', n:'6', label:'Bandeja organizadora 6', detalle:'Organizador superior 6', color:'#164e9a', icon:'fa-layer-group', box:{left:56.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-7', n:'7', label:'Bandeja organizadora 7', detalle:'Organizador superior 7', color:'#164e9a', icon:'fa-layer-group', box:{left:66.8, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-8', n:'8', label:'Bandeja organizadora 8', detalle:'Organizador superior 8', color:'#164e9a', icon:'fa-layer-group', box:{left:77.8, top:21.0, width:9.5, height:10.5} },
-        { key:'cajon-1', n:'1', label:'Herramienta manual', detalle:'Cajón 1', color:'#164e9a', icon:'fa-box', box:{left:5.0, top:34.0, width:27.5, height:7.0} },
-        { key:'cajon-2', n:'2', label:'Llaves y alicates', detalle:'Cajón 2', color:'#23751f', icon:'fa-box', box:{left:5.0, top:41.3, width:27.5, height:7.0} },
-        { key:'cajon-3', n:'3', label:'Destornilladores', detalle:'Cajón 3', color:'#df6b08', icon:'fa-box', box:{left:5.0, top:48.5, width:27.5, height:7.0} },
-        { key:'cajon-4', n:'4', label:'Corte y medición', detalle:'Cajón 4', color:'#c41e2f', icon:'fa-box', box:{left:34.3, top:34.0, width:27.5, height:7.0} },
-        { key:'cajon-5', n:'5', label:'Fijaciones', detalle:'Cajón 5', color:'#118694', icon:'fa-box', box:{left:34.3, top:41.3, width:27.5, height:7.0} },
-        { key:'cajon-6', n:'6', label:'Taladro y accesorios', detalle:'Cajón 6', color:'#c41276', icon:'fa-box', box:{left:34.3, top:48.5, width:27.5, height:7.0} },
-        { key:'cajon-7', n:'7', label:'Brocas y puntas', detalle:'Cajón 7', color:'#8a4312', icon:'fa-box', box:{left:63.3, top:34.0, width:27.5, height:10.7} },
-        { key:'cajon-8', n:'8', label:'Cintas y adhesivos', detalle:'Cajón 8', color:'#e9a900', icon:'fa-box', box:{left:63.3, top:45.0, width:27.5, height:10.7} },
-        { key:'inferior-10', n:'9', label:'Zona inferior / almacenaje general', detalle:'Zona inferior del armario', color:'#e9a900', icon:'fa-boxes-stacked', box:{left:4.5, top:57.2, width:88.5, height:13.8} }
-      ]
-    },
-    {
-      id: 'armario-actual',
-      nombre: 'Armario actual',
-      descripcion: 'Plano actualmente incluido en EPI-Check',
-      coincidencias: [],
-      imagen: (typeof EPICHECK_ARMARIO_MAPA_SRC !== 'undefined' ? EPICHECK_ARMARIO_MAPA_SRC : ''),
-      zonas: zonasOriginales
-    }
-  ];
-
-  function coincide(perfil, marca, modelo){
-    var m=normalizar(marca), mo=normalizar(modelo);
-    return Array.isArray(perfil.coincidencias) && perfil.coincidencias.some(function(c){
-      var cm=normalizar(c.marca), cmo=normalizar(c.modelo);
-      return (!cm || m.indexOf(cm)!==-1 || cm.indexOf(m)!==-1) && (!cmo || mo.indexOf(cmo)!==-1 || cmo.indexOf(mo)!==-1);
-    });
-  }
-  function perfilActivo(){
-    var d=datosActuales();
-    var encontrado=perfiles.find(function(p){ return p.id!=='armario-actual' && coincide(p,d.marca,d.modelo); });
-    if(encontrado) return Object.assign({esGenerico:false},encontrado);
-    var base=perfiles.find(function(p){return p.id==='armario-actual';}) || perfiles[0];
-    return Object.assign({esGenerico:true},base||{id:'sin-plano',nombre:'Sin plano',imagen:'',zonas:[]});
-  }
-  window.obtenerPerfilPlanoFurgoneta = perfilActivo;
-  window.registrarPerfilPlanoFurgoneta = function(perfil){
-    if(!perfil || !perfil.id || !perfil.imagen || !Array.isArray(perfil.zonas)) throw new Error('Perfil de plano incompleto');
-    var i=perfiles.findIndex(function(p){return p.id===perfil.id;});
-    if(i>=0) perfiles[i]=perfil; else perfiles.push(perfil);
-    return perfil;
-  };
-
-  try {
-    zonasArmarioBase = function(){
-      var p=perfilActivo();
-      return Array.isArray(p.zonas) ? p.zonas : zonasOriginales;
-    };
-    window.zonasArmarioBase=zonasArmarioBase;
-  } catch(_) {}
-
-  if(renderOriginal){
-    try {
-      renderArmarioInteractivo=function(zona){
-        var p=perfilActivo();
-        var html=renderOriginal(zona);
-        if(p.imagen){
-          html=html.replace(/<img src="[^"]*" alt="Imagen del armario furgoneta"/, '<img src="'+p.imagen+'" alt="Imagen del armario furgoneta"');
-        }
-        var d=datosActuales();
-        var veh=[d.marca,d.modelo].filter(Boolean).join(' ') || 'Furgoneta sin marca/modelo';
-        var aviso=p.esGenerico
-          ? '<div class="rounded-xl border border-amber-700/70 bg-amber-950/30 p-3 text-[11px] text-amber-200"><div class="font-black"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Plano genérico</div><div class="mt-1 text-amber-100/80">Todavía no hay un plano específico para '+esc(veh)+'. Se muestra el armario actual.</div></div>'
-          : '<div class="rounded-xl border border-emerald-700/70 bg-emerald-950/30 p-3 text-[11px] text-emerald-200"><div class="font-black"><i class="fa-solid fa-truck-ramp-box mr-1"></i>'+esc(p.nombre)+'</div><div class="mt-1 text-emerald-100/80">Perfil detectado para '+esc(veh)+'.</div></div>';
-        return html.replace('<div class="space-y-3">','<div class="space-y-3">'+aviso);
-      };
-      window.renderArmarioInteractivo=renderArmarioInteractivo;
-    } catch(_) {}
-  }
-
-  function mostrarPerfilEnTarjeta(){
-    var cont=document.getElementById('vehiculo-info');
-    if(!cont) return;
-    var linea=document.getElementById('v-perfil-plano');
-    if(!linea){
-      linea=document.createElement('div');
-      linea.id='v-perfil-plano';
-      linea.className='col-span-2';
-      cont.appendChild(linea);
-    }
-    var p=perfilActivo();
-    linea.innerHTML='<span class="text-slate-400">Plano de ubicaciones:</span> <span class="'+(p.esGenerico?'text-amber-300':'text-emerald-300')+' font-bold">'+esc(p.esGenerico?'Genérico · pendiente de imagen específica':p.nombre)+'</span>';
-  }
-  try {
-    var actualizarOriginal=actualizarTarjetaVehiculo;
-    actualizarTarjetaVehiculo=function(){ var r=actualizarOriginal.apply(this,arguments); mostrarPerfilEnTarjeta(); return r; };
-    window.actualizarTarjetaVehiculo=actualizarTarjetaVehiculo;
-  } catch(_) {}
-  try {
-    var guardarOriginal=guardarVehiculo;
-    guardarVehiculo=function(){
-      var r=guardarOriginal.apply(this,arguments);
-      setTimeout(function(){
-        mostrarPerfilEnTarjeta();
-        try { if(typeof actualizarSelectorUbicacionArmario==='function') actualizarSelectorUbicacionArmario(''); } catch(_) {}
-        var p=perfilActivo();
-        if(typeof feedbackEpi==='function') feedbackEpi(p.esGenerico?'Datos guardados. Se usará el plano genérico hasta añadir el específico.':'Datos guardados. Plano '+p.nombre+' seleccionado.','ok');
-      },0);
-      return r;
-    };
-    window.guardarVehiculo=guardarVehiculo;
-  } catch(_) {}
-  document.addEventListener('DOMContentLoaded',mostrarPerfilEnTarjeta,{once:true});
-})();
-</script>
-
-
-<style id="epi-card-height-fix-20260724">
-/* Estas tarjetas conservan su contenido, pero no heredan el gran espacio inferior reservado para la navegación. */
-#home-panel{
-  padding-bottom:0.625rem!important;
-  scroll-padding-bottom:0!important;
-}
-#tarjeta-vehiculo{
-  padding-bottom:0!important;
-  scroll-padding-bottom:0!important;
-}
-</style>
 
 </body></html>`;
                         const blob = new Blob([tabla], { type: 'application/vnd.ms-excel;charset=utf-8' });
@@ -8237,34 +8082,6 @@ main,
      un objeto con id, nombre, coincidencias de marca/modelo, imagen y zonas. */
   var perfiles = window.EPICHECK_PLANOS_REGISTRY = window.EPICHECK_PLANOS_REGISTRY || [
     {
-      id: 'ford-transit-armario-herramientas',
-      nombre: 'Ford Transit · Armario de herramientas',
-      descripcion: 'Armario de herramientas específico para Ford Transit',
-      coincidencias: [
-        { marca: 'Ford', modelo: 'Transit' }
-      ],
-      imagen: './ford-transit-armario-herramientas.png',
-      zonas: [
-        { key:'bandeja-1', n:'1', label:'Bandeja organizadora 1', detalle:'Organizador superior 1', color:'#164e9a', icon:'fa-layer-group', box:{left:5.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-2', n:'2', label:'Bandeja organizadora 2', detalle:'Organizador superior 2', color:'#164e9a', icon:'fa-layer-group', box:{left:14.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-3', n:'3', label:'Bandeja organizadora 3', detalle:'Organizador superior 3', color:'#164e9a', icon:'fa-layer-group', box:{left:24.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-4', n:'4', label:'Bandeja organizadora 4', detalle:'Organizador superior 4', color:'#164e9a', icon:'fa-layer-group', box:{left:35.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-5', n:'5', label:'Bandeja organizadora 5', detalle:'Organizador superior 5', color:'#164e9a', icon:'fa-layer-group', box:{left:45.5, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-6', n:'6', label:'Bandeja organizadora 6', detalle:'Organizador superior 6', color:'#164e9a', icon:'fa-layer-group', box:{left:56.0, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-7', n:'7', label:'Bandeja organizadora 7', detalle:'Organizador superior 7', color:'#164e9a', icon:'fa-layer-group', box:{left:66.8, top:21.0, width:9.5, height:10.5} },
-        { key:'bandeja-8', n:'8', label:'Bandeja organizadora 8', detalle:'Organizador superior 8', color:'#164e9a', icon:'fa-layer-group', box:{left:77.8, top:21.0, width:9.5, height:10.5} },
-        { key:'cajon-1', n:'1', label:'Herramienta manual', detalle:'Cajón 1', color:'#164e9a', icon:'fa-box', box:{left:5.0, top:34.0, width:27.5, height:7.0} },
-        { key:'cajon-2', n:'2', label:'Llaves y alicates', detalle:'Cajón 2', color:'#23751f', icon:'fa-box', box:{left:5.0, top:41.3, width:27.5, height:7.0} },
-        { key:'cajon-3', n:'3', label:'Destornilladores', detalle:'Cajón 3', color:'#df6b08', icon:'fa-box', box:{left:5.0, top:48.5, width:27.5, height:7.0} },
-        { key:'cajon-4', n:'4', label:'Corte y medición', detalle:'Cajón 4', color:'#c41e2f', icon:'fa-box', box:{left:34.3, top:34.0, width:27.5, height:7.0} },
-        { key:'cajon-5', n:'5', label:'Fijaciones', detalle:'Cajón 5', color:'#118694', icon:'fa-box', box:{left:34.3, top:41.3, width:27.5, height:7.0} },
-        { key:'cajon-6', n:'6', label:'Taladro y accesorios', detalle:'Cajón 6', color:'#c41276', icon:'fa-box', box:{left:34.3, top:48.5, width:27.5, height:7.0} },
-        { key:'cajon-7', n:'7', label:'Brocas y puntas', detalle:'Cajón 7', color:'#8a4312', icon:'fa-box', box:{left:63.3, top:34.0, width:27.5, height:10.7} },
-        { key:'cajon-8', n:'8', label:'Cintas y adhesivos', detalle:'Cajón 8', color:'#e9a900', icon:'fa-box', box:{left:63.3, top:45.0, width:27.5, height:10.7} },
-        { key:'inferior-10', n:'9', label:'Zona inferior / almacenaje general', detalle:'Zona inferior del armario', color:'#e9a900', icon:'fa-boxes-stacked', box:{left:4.5, top:57.2, width:88.5, height:13.8} }
-      ]
-    },
-    {
       id: 'armario-actual',
       nombre: 'Armario actual',
       descripcion: 'Plano actualmente incluido en EPI-Check',
@@ -8359,18 +8176,6 @@ main,
 })();
 </script>
 
-
-<style id="epi-card-height-fix-20260724">
-/* Estas tarjetas conservan su contenido, pero no heredan el gran espacio inferior reservado para la navegación. */
-#home-panel{
-  padding-bottom:0.625rem!important;
-  scroll-padding-bottom:0!important;
-}
-#tarjeta-vehiculo{
-  padding-bottom:0!important;
-  scroll-padding-bottom:0!important;
-}
-</style>
-
+<script src="./js/18-ford-transit-profile.js"></script>
 </body>
 </html>
