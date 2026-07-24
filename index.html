@@ -391,26 +391,28 @@
     <main class="max-w-md mx-auto px-4 mt-4">
 
         <!-- Inicio reorganizado: menos repetición, solo estado útil + acción principal -->
-        <section id="home-panel" class="mb-4 bg-slate-900/90 border border-slate-700 rounded-2xl p-3 shadow-md">
+        <section id="home-panel" class="mb-3 bg-slate-900/90 border border-slate-700 rounded-2xl p-2.5 shadow-md">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="text-[10px] uppercase tracking-wider text-slate-400 font-black">Estado de hoy</p>
                     <h2 class="text-base font-black text-slate-100 leading-tight">Control listo para revisar</h2>
-                    <p id="home-status-line" class="text-xs text-slate-400 mt-1 font-semibold">Sin accesos duplicados: usa la barra inferior para Calendario y Dashboard.</p>
+                    <p id="home-status-line" class="text-[11px] text-slate-400 mt-0.5 font-semibold leading-tight">Sin accesos duplicados: usa la barra inferior para Calendario y Dashboard.</p>
                 </div>
-                <div id="home-incidencias-badge" class="flex-shrink-0 bg-red-950/50 border border-red-800 text-red-300 rounded-xl px-3 py-2 text-center">
-                    <div class="text-lg font-black">0</div>
-                    <div class="text-[9px] uppercase font-bold">Incidencias</div>
+                <div id="home-incidencias-badge" class="flex-shrink-0 bg-red-950/50 border border-red-800 text-red-300 rounded-lg px-2.5 py-1.5 text-center">
+                    <div class="text-base leading-none font-black">0</div>
+                    <div class="text-[8px] uppercase font-bold mt-0.5">Incidencias</div>
                 </div>
             </div>
 
-            <button onclick="abrirInspeccionRapida()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all">
-                <i class="fa-solid fa-play"></i> Comenzar inspección
-            </button>
+            <div class="grid grid-cols-2 gap-2 mt-2.5">
+                <button onclick="abrirInspeccionRapida()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black py-2.5 px-2 rounded-xl shadow-md flex items-center justify-center gap-1.5 text-[11px] transition-all">
+                    <i class="fa-solid fa-play"></i> Inspección
+                </button>
 
-            <button onclick="abrirModoEncontrarMaterial()" class="w-full mt-2 bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] text-white font-black py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all border border-cyan-500/70">
-                <i class="fa-solid fa-location-crosshairs"></i> Encontrar material
-            </button>
+                <button onclick="abrirModoEncontrarMaterial()" class="bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] text-white font-black py-2.5 px-2 rounded-xl shadow-md flex items-center justify-center gap-1.5 text-[11px] transition-all border border-cyan-500/70">
+                    <i class="fa-solid fa-location-crosshairs"></i> Encontrar
+                </button>
+            </div>
 
             <!-- Datos ocultos para mantener la lógica de resumen sin duplicarlos en pantalla -->
             <div class="hidden">
@@ -524,16 +526,16 @@
         </div>
 
         <!-- Tarjeta vehículo — solo visible en pestaña Furgoneta -->
-        <div id="tarjeta-vehiculo" class="hidden mb-4 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-            <div class="flex justify-between items-center px-4 py-3 bg-slate-750 border-b border-slate-700">
-                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+        <div id="tarjeta-vehiculo" class="hidden mb-3 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center px-3 py-2 bg-slate-750 border-b border-slate-700">
+                <h3 class="font-bold text-sm text-slate-100 flex items-center gap-1.5">
                     <i class="fa-solid fa-truck-ramp-box text-sky-400"></i> Datos del Vehículo
                 </h3>
-                <button onclick="abrirModalVehiculo()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                <button onclick="abrirModalVehiculo()" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1">
                     <i class="fa-solid fa-pen-to-square text-sky-400 text-xs"></i> Editar
                 </button>
             </div>
-            <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs" id="vehiculo-info">
+            <div class="p-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] leading-tight" id="vehiculo-info">
                 <div><span class="text-slate-400">Matrícula:</span> <span class="text-slate-100 font-bold" id="v-matricula">—</span></div>
                 <div><span class="text-slate-400">Estado:</span> <span class="text-emerald-400 font-bold" id="v-estado-vehiculo">OK</span></div>
                 <div><span class="text-slate-400">Marca / Modelo:</span> <span class="text-slate-100" id="v-marca-modelo">—</span></div>
