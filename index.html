@@ -2277,7 +2277,7 @@
                                 <button data-action="pdf" class="bg-slate-900 hover:bg-slate-700 text-slate-300 font-semibold px-2 py-2 rounded-lg border border-slate-700 flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-file-pdf text-red-400"></i> ${Array.isArray(item.adjuntos) ? item.adjuntos.length : 0}
                                 </button>
-                                ${item.ubicacion === 'herramienta' ? `<button data-action="mapa-armario" title="Ver mapa del armario" class="bg-slate-900 hover:bg-amber-900/60 text-slate-300 border-slate-700 font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-location-dot text-amber-400"></i></button>` : ''}
+                                ${item.ubicacion === 'herramienta' ? `<button type="button" data-action="mapa-armario" title="${ubicacionAsignada ? 'Ver ubicación asignada' : 'Ubicación sin asignar'}" aria-label="${ubicacionAsignada ? 'Ubicación asignada' : 'Ubicación sin asignar'}" class="${ubicacionAsignada ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionAsignada ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${item.ubicacion === 'furgoneta' ? `<button type="button" data-action="mapa-armario" title="${ubicacionAsignada ? 'Ver ubicación asignada' : 'Ubicación sin asignar'}" aria-label="${ubicacionAsignada ? 'Ubicación asignada' : 'Ubicación sin asignar'}" class="${ubicacionAsignada ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionAsignada ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${item.ubicacion === 'personal' ? `<button type="button" data-action="donde" title="${ubicacionFisica ? 'Ubicación: ' + esc(ubicacionFisica) : 'Añadir ubicación'}" aria-label="${ubicacionFisica ? 'Consultar ubicación' : 'Añadir ubicación'}" class="${ubicacionFisica ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionFisica ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${(item.ubicacion === 'furgoneta' || item.ubicacion === 'herramienta') ? `<button data-action="prestado" class="${prestadoActivo ? 'bg-fuchsia-900/70 border-fuchsia-600 text-fuchsia-200' : 'bg-slate-900 hover:bg-slate-700 text-slate-300 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-handshake text-fuchsia-400"></i></button>` : ''}
@@ -6680,8 +6680,9 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
     var inv=inventarioActual();
     document.querySelectorAll('#material-list [data-item-id]').forEach(function(card){
       var item=inv.find(function(x){return String(x&&x.id)===String(card.dataset.itemId);});
-      if(!item || item.ubicacion!=='furgoneta') return;
-      // El pin depende únicamente de que item.donde tenga contenido.
+      if(!item || (item.ubicacion!=='furgoneta' && item.ubicacion!=='herramienta')) return;
+      // El pin depende únicamente de que item.donde tenga contenido, tanto en
+      // Furgoneta como en Herramientas.
       // No exige que el texto coincida con un patrón del plano.
       var ok=(typeof tieneUbicacionAsignada==='function')
         ? tieneUbicacionAsignada(item)
