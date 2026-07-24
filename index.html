@@ -1152,6 +1152,12 @@
             return true;
         }
 
+        // API pública de fotografías para Supabase Storage.
+        window.guardarFotoDB = guardarFotoDB;
+        window.leerFotoDB = leerFotoDB;
+        window.borrarFotoDB = borrarFotoDB;
+        window.abrirDBFotosEpiCheck = abrirDBFotosEpiCheck;
+
         function dataUrlBytes(data) {
             if (!data || typeof data !== 'string') return 0;
             const base64 = data.split(',')[1] || '';
@@ -7207,7 +7213,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
       const snapshot = buildCloudSnapshot();
       const summary = snapshotSummary(snapshot);
       if (options.manual && !options.skipConfirm) {
-        const ok = confirm(`Se va a subir la copia actual del móvil.\n\nMateriales: ${summary.materials}\nBloques de datos: ${summary.keys}\n\nLas fotos originales todavía no se subirán en esta fase.\n\n¿Continuar?`);
+        const ok = confirm(`Se va a subir la copia actual del móvil.\n\nMateriales: ${summary.materials}\nBloques de datos: ${summary.keys}\n\nTambién se subirán las fotos originales guardadas en este móvil.\n\n¿Continuar?`);
         if (!ok) return false;
       }
       const payload = {
@@ -7224,7 +7230,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
       cloudRemoteRowExists = true;
       setCloudStatus('ok', 'Sincronizado');
       refreshCloudPanel();
-      if (options.manual) alert(`✅ Datos guardados en Supabase.\n\nMateriales: ${summary.materials}\nÚltima sincronización: ${cloudFriendlyDate(now)}\n\nLas fotos originales se añadirán en la siguiente fase.`);
+      if (options.manual) alert(`✅ Datos guardados en Supabase.\n\nMateriales: ${summary.materials}\nÚltima sincronización: ${cloudFriendlyDate(now)}\n\nLas fotos se sincronizarán ahora con Supabase Storage.`);
       return true;
     } finally {
       cloudSyncInFlight = false;
@@ -7337,7 +7343,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
           <div id="epi-cloud-logged-out" class="space-y-3">
             <div class="rounded-2xl border border-sky-800/70 bg-sky-950/30 p-3 text-xs text-sky-100">
               <div class="font-black mb-1">Protege tus datos</div>
-              <p class="text-sky-200/80 leading-relaxed">Inicia sesión para guardar el inventario, ubicaciones, historial y configuración en Supabase. Las fotos originales se incorporarán en la siguiente fase.</p>
+              <p class="text-sky-200/80 leading-relaxed">Inicia sesión para guardar el inventario, ubicaciones, historial y configuración en Supabase. Las fotos originales se guardan en Supabase Storage y se pueden recuperar en otro móvil.</p>
             </div>
             <label class="block text-xs font-bold text-slate-300">Correo electrónico
               <input id="epi-cloud-email" type="email" autocomplete="email" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-emerald-500" placeholder="tu@correo.com">
@@ -7441,8 +7447,19 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
     setCloudStatus('idle', 'Sesión cerrada');
     await refreshCloudPanel();
   };
-  window.subirDatosActualesNubeEpiCheck = function () {
-    uploadCurrentState({ manual:true }).catch(error => { setCloudStatus('error', 'Error al subir'); alert(`No se pudieron subir los datos:\n${error.message}`); });
+  window.subirDatosActualesNubeEpiCheck = async function () {
+    try {
+      const uploaded = await uploadCurrentState({ manual:true });
+      if (uploaded && typeof window.sincronizarFotosSupabaseEpiCheck === 'function') {
+        await window.sincronizarFotosSupabaseEpiCheck();
+      } else if (uploaded) {
+        alert('Los datos se guardaron, pero el módulo de fotos no está disponible. Recarga la aplicación e inténtalo de nuevo.');
+      }
+    } catch (error) {
+      setCloudStatus('error', 'Error al subir');
+      alert(`No se pudieron subir los datos:
+${error.message}`);
+    }
   };
   window.restaurarDatosNubeEpiCheck = function () {
     restoreRemoteState().catch(error => { setCloudStatus('error', 'Error al restaurar'); alert(`No se pudo restaurar:\n${error.message}`); });
@@ -7484,7 +7501,7 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
 })();
 </script>
 
-<script src="js/17-supabase-photos.js?v=20260723-3"></script>
+<script src="js/17-supabase-photos.js?v=20260724-4"></script>
 
 <style id="epi-nav-persistente-limpio-20260720">
   :root{--epi-nav-safe:env(safe-area-inset-bottom,0px);--epi-nav-total:calc(88px + var(--epi-nav-safe));}
