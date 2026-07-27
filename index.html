@@ -346,6 +346,7 @@
 <!-- ========================= BARRA INFERIOR DE NAVEGACIÓN ========================= -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="./css/21-stability-improvements.css">
 </head>
 <!-- ========================= 05. BODY / CABECERA / NAVEGACIÓN ========================= -->
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-24 select-none">
@@ -384,7 +385,7 @@
     <main class="max-w-md mx-auto px-4 mt-4">
 
         <!-- Inicio reorganizado: menos repetición, solo estado útil + acción principal -->
-        <section id="home-panel" class="mb-3 bg-slate-900/90 border border-slate-700 rounded-2xl px-3 py-2 shadow-md">
+        <section id="home-panel" data-epi-card="control-listo" class="mb-3 bg-slate-900/90 border border-slate-700 rounded-2xl px-3 py-2 shadow-md">
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <p class="text-[10px] uppercase tracking-wider text-slate-400 font-black">Estado de hoy</p>
@@ -1635,6 +1636,8 @@ main,
 <script id="epi-ubicaciones-interior-header-fix-js-20260724" src="./js/19-epi-ubicaciones-interior-header-fix-js-20260724.js"></script>
 
 <script id="epi-perfiles-furgoneta-v1" src="./js/20-epi-perfiles-furgoneta-v1.js"></script>
+<script id="epi-location-validation-v1" src="./js/21-location-validation.js"></script>
+<script id="epi-vehicle-manager-v1" src="./js/22-vehicle-manager.js"></script>
 
 </body>
 </html>
