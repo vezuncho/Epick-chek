@@ -6575,7 +6575,11 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
                         </div>
                     </div>
                 </div>
-                <button type="button" onclick="abrirRutaEncontrarMaterial('${id}')" class="w-full mt-3 bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] border border-cyan-500 text-white rounded-xl py-2.5 text-xs font-black"><i class="fa-solid fa-route mr-1"></i>Encontrar este material</button>
+                <div class="grid grid-cols-3 gap-2 mt-3">
+                    <button type="button" onclick="abrirRutaEncontrarMaterial('${id}')" class="bg-cyan-700 hover:bg-cyan-600 active:scale-[0.98] border border-cyan-500 text-white rounded-xl py-2.5 px-1 text-[10px] font-black"><i class="fa-solid fa-map-location-dot block mb-1"></i>Ver plano</button>
+                    <button type="button" onclick="abrirInteriorDesdeEncontrar('${id}')" class="bg-slate-800 hover:bg-slate-700 active:scale-[0.98] border border-slate-600 text-slate-100 rounded-xl py-2.5 px-1 text-[10px] font-black"><i class="fa-solid fa-camera block mb-1 text-cyan-300"></i>Ver interior</button>
+                    <button type="button" onclick="abrirFichaDesdeEncontrar('${id}')" class="bg-slate-800 hover:bg-slate-700 active:scale-[0.98] border border-slate-600 text-slate-100 rounded-xl py-2.5 px-1 text-[10px] font-black"><i class="fa-solid fa-pen-to-square block mb-1 text-amber-300"></i>Abrir ficha</button>
+                </div>
             </div>`;
         }).join('');
     }
@@ -6602,6 +6606,40 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
     };
 
     window.renderResultadosEncontrarMaterial = renderResultadosEncontrarMaterial;
+
+    window.abrirFichaDesdeEncontrar = function(id){
+        const modal = document.getElementById('modal-generico-overlay');
+        if (modal) modal.remove();
+        const mapa = document.getElementById('modal-mapa-armario-overlay');
+        if (mapa) mapa.remove();
+        if (typeof editarMaterial === 'function') {
+            editarMaterial(id);
+        } else if (typeof window.editarMaterial === 'function') {
+            window.editarMaterial(id);
+        } else if (typeof feedbackEpi === 'function') {
+            feedbackEpi('No se pudo abrir la ficha del material', 'warn');
+        }
+    };
+
+    window.abrirInteriorDesdeEncontrar = function(id){
+        const lista = Array.isArray(window.inventario) ? window.inventario : (typeof inventario !== 'undefined' ? inventario : []);
+        const item = lista.find(x => String(x && x.id) === String(id));
+        if (!item) { if (typeof feedbackEpi === 'function') feedbackEpi('No se encontró el material', 'warn'); return; }
+        const zona = (typeof zonaArmarioDesdeItem === 'function') ? zonaArmarioDesdeItem(item) : null;
+        if (!zona || !zona.key || zona.key === 'sin-asignar') {
+            if (typeof feedbackEpi === 'function') feedbackEpi('Este material no tiene una zona exacta asignada', 'warn');
+            return;
+        }
+        const fotos = (typeof fotosZonaPlano === 'function') ? fotosZonaPlano(zona.key) : [];
+        if (!Array.isArray(fotos) || !fotos.length) {
+            if (typeof feedbackEpi === 'function') feedbackEpi('No hay fotos interiores guardadas para ' + (zona.label || 'esta zona'), 'warn');
+            return;
+        }
+        const modal = document.getElementById('modal-generico-overlay');
+        if (modal) modal.remove();
+        if (typeof abrirFotoInteriorPlano === 'function') abrirFotoInteriorPlano(zona.key, 0);
+        else if (typeof window.abrirFotoInteriorPlano === 'function') window.abrirFotoInteriorPlano(zona.key, 0);
+    };
 
     window.abrirRutaEncontrarMaterial = function(id){
         const lista = Array.isArray(window.inventario) ? window.inventario : (typeof inventario !== 'undefined' ? inventario : []);
@@ -6754,9 +6792,10 @@ const oldCambiar=window.cambiarPestana;if(typeof oldCambiar==='function'&&!oldCa
                     '<div class="rounded-2xl border border-cyan-800/70 bg-cyan-950/25 p-3 text-xs text-cyan-100 font-bold"><i class="fa-solid fa-circle-info mr-1"></i>La zona del material aparece marcada en el plano.</div>' +
                     armarioHtml +
                 '</div>' +
-                '<div class="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-2 shrink-0">' +
-                    '<button type="button" onclick="document.getElementById(\'modal-mapa-armario-overlay\')?.remove(); abrirModoEncontrarMaterial();" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-[11px] font-black"><i class="fa-solid fa-magnifying-glass mr-1"></i>Buscar otro</button>' +
-                    btnInterior +
+                '<div class="p-3 border-t border-slate-800 bg-slate-950 grid grid-cols-3 gap-2 shrink-0">' +
+                    '<button type="button" onclick="document.getElementById(\'modal-mapa-armario-overlay\')?.remove(); abrirModoEncontrarMaterial();" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-2 py-2 text-[10px] font-black"><i class="fa-solid fa-magnifying-glass block mb-1"></i>Buscar otro</button>' +
+                    (zonaKey && fotosCount > 0 ? '<button type="button" onclick=\'abrirFotoInteriorPlano(' + JSON.stringify(zonaKey) + ',0)\' class="bg-cyan-700 hover:bg-cyan-600 border border-cyan-500 text-white rounded-xl px-2 py-2 text-[10px] font-black"><i class="fa-solid fa-camera block mb-1"></i>Ver interior</button>' : '<button type="button" disabled class="bg-slate-900 border border-slate-800 text-slate-600 rounded-xl px-2 py-2 text-[10px] font-black"><i class="fa-solid fa-camera block mb-1"></i>Sin interior</button>') +
+                    '<button type="button" onclick="abrirFichaDesdeEncontrar(' + JSON.stringify(String(id)) + ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 rounded-xl px-2 py-2 text-[10px] font-black"><i class="fa-solid fa-pen-to-square block mb-1 text-amber-300"></i>Abrir ficha</button>' +
                 '</div>' +
             '</div>';
         if (!tieneZona && typeof window.feedbackEpi === 'function') window.feedbackEpi('El material no tiene cajón/bandeja exacto. Edita “Dónde exactamente”.', 'warn');
