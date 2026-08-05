@@ -673,6 +673,10 @@ if ('serviceWorker' in navigator) {
                 <div class="font-black text-lg text-emerald-400" id="count-stat-3">0</div>
                 <div class="text-[10px] uppercase font-bold tracking-wider text-emerald-300" id="label-stat-3">Al Día</div>
             </div>
+            <div onclick="filtrarEstado('prestado')" id="card-stat-prestados" class="hidden cursor-pointer bg-fuchsia-950/40 border border-fuchsia-800/60 p-2.5 rounded-xl text-center active:scale-95 transition-transform">
+                <div class="font-black text-lg text-fuchsia-400" id="count-stat-prestados">0</div>
+                <div class="text-[10px] uppercase font-bold tracking-wider text-fuchsia-300">Préstamos</div>
+            </div>
         </div>
 
 
@@ -2297,7 +2301,7 @@ if ('serviceWorker' in navigator) {
                 }
             }
 
-            let cVencido = 0, cProximo = 0, cOk = 0, cFalta = 0, cDeteriorado = 0, cCalibrando = 0;
+            let cVencido = 0, cProximo = 0, cOk = 0, cFalta = 0, cDeteriorado = 0, cCalibrando = 0, cPrestado = 0;
             let totalFiltradosPestana = 0;
 
             inventario.forEach(item => {
@@ -2332,6 +2336,7 @@ if ('serviceWorker' in navigator) {
                     if (esFaltaItem)       cFalta++;
                     if (esDeterioradoItem) cDeteriorado++;
                     if (esCalibrandoItem)  cCalibrando++;
+                    if (item.ubicacion === 'herramienta' && esPrestadoItem) cPrestado++;
 
                     if (!busquedaGlobalActiva && machtSearch) totalCoincidenciasBusqueda++;
 
@@ -2339,7 +2344,8 @@ if ('serviceWorker' in navigator) {
                         || (filtroEstadoActual === 'falta'       && esFaltaItem)
                         || (filtroEstadoActual === 'deteriorado' && esDeterioradoItem)
                         || (filtroEstadoActual === 'calibrando' && esCalibrandoItem)
-                        || (filtroEstadoActual !== 'falta' && filtroEstadoActual !== 'deteriorado' && filtroEstadoActual !== 'calibrando' && est === filtroEstadoActual && !esFaltaItem && !esDeterioradoItem && !esCalibrandoItem && !esPrestadoItem);
+                        || (filtroEstadoActual === 'prestado' && item.ubicacion === 'herramienta' && esPrestadoItem)
+                        || (filtroEstadoActual !== 'falta' && filtroEstadoActual !== 'deteriorado' && filtroEstadoActual !== 'calibrando' && filtroEstadoActual !== 'prestado' && est === filtroEstadoActual && !esFaltaItem && !esDeterioradoItem && !esCalibrandoItem && !esPrestadoItem);
 
                     if (machtSearch && matchFiltro) {
                         visiblesCoincidenciasBusqueda++;
@@ -2465,7 +2471,7 @@ if ('serviceWorker' in navigator) {
                                 ${item.ubicacion === 'herramienta' ? `<button type="button" data-action="mapa-armario" title="${ubicacionAsignada ? 'Ver ubicación asignada' : 'Ubicación sin asignar'}" aria-label="${ubicacionAsignada ? 'Ubicación asignada' : 'Ubicación sin asignar'}" class="${ubicacionAsignada ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionAsignada ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${item.ubicacion === 'furgoneta' ? `<button type="button" data-action="mapa-armario" title="${ubicacionAsignada ? 'Ver ubicación asignada' : 'Ubicación sin asignar'}" aria-label="${ubicacionAsignada ? 'Ubicación asignada' : 'Ubicación sin asignar'}" class="${ubicacionAsignada ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionAsignada ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
                                 ${item.ubicacion === 'personal' ? `<button type="button" data-action="donde" title="${ubicacionFisica ? 'Ubicación: ' + esc(ubicacionFisica) : 'Añadir ubicación'}" aria-label="${ubicacionFisica ? 'Consultar ubicación' : 'Añadir ubicación'}" class="${ubicacionFisica ? 'bg-cyan-800/80 border-cyan-400 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,.18)]' : 'bg-slate-900 hover:bg-cyan-900/60 text-slate-400 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1 transition-all"><i class="fa-solid fa-location-dot ${ubicacionFisica ? 'text-cyan-200' : 'text-slate-500'}"></i></button>` : ''}
-                                ${(item.ubicacion === 'furgoneta' || item.ubicacion === 'herramienta') ? `<button data-action="prestado" class="${prestadoActivo ? 'bg-fuchsia-900/70 border-fuchsia-600 text-fuchsia-200' : 'bg-slate-900 hover:bg-slate-700 text-slate-300 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-handshake text-fuchsia-400"></i></button>` : ''}
+                                ${item.ubicacion === 'herramienta' ? `<button data-action="prestado" class="${prestadoActivo ? 'bg-fuchsia-900/70 border-fuchsia-600 text-fuchsia-200' : 'bg-slate-900 hover:bg-slate-700 text-slate-300 border-slate-700'} font-semibold px-2 py-2 rounded-lg border flex items-center justify-center gap-1"><i class="fa-solid fa-handshake text-fuchsia-400"></i></button>` : ''}
                             </div>
 
                             <div class="epi-card-actions flex justify-between gap-2 pt-1 border-t border-slate-700/40">
@@ -2499,6 +2505,8 @@ if ('serviceWorker' in navigator) {
             document.getElementById('count-stat-1').innerText = pestanaActual === 'herramienta' ? cFalta      : cVencido;
             document.getElementById('count-stat-2').innerText = pestanaActual === 'herramienta' ? cDeteriorado : cProximo;
             document.getElementById('count-stat-3').innerText = cOk;
+            const loanCountEl = document.getElementById('count-stat-prestados');
+            if (loanCountEl) loanCountEl.innerText = cPrestado;
             document.getElementById('badge-total').innerText  = soloIncidenciasGlobal ? `${totalFiltradosPestana} Incidencias` : (busquedaGlobalActiva ? `${visiblesCoincidenciasBusqueda} Resultados` : `${totalFiltradosPestana} Equipos`);
             actualizarInfoBusqueda(totalCoincidenciasBusqueda, visiblesCoincidenciasBusqueda, searchStr);
             actualizarControlesVista();
@@ -2508,7 +2516,9 @@ if ('serviceWorker' in navigator) {
             // Swap card styles and labels based on tab
             const esHerr = pestanaActual === 'herramienta';
             const grid   = document.getElementById('stats-grid');
-            grid.className = 'grid grid-cols-3 gap-2 mb-4';
+            grid.className = esHerr ? 'grid grid-cols-4 gap-2 mb-4' : 'grid grid-cols-3 gap-2 mb-4';
+            const loanCard = document.getElementById('card-stat-prestados');
+            if (loanCard) loanCard.classList.toggle('hidden', !esHerr);
 
             const card1  = document.getElementById('card-stat-1');
             const card2  = document.getElementById('card-stat-2');
@@ -2889,7 +2899,7 @@ if ('serviceWorker' in navigator) {
             filtroEstadoActual = estado;
             const banner = document.getElementById('active-filter-banner');
             const txt = document.getElementById('filter-text');
-            txt.innerText = estado === 'ok' ? 'Al día' : estado === 'proximo' ? 'Próximos' : estado === 'falta' ? 'Falta' : estado === 'deteriorado' ? 'Deteriorados' : 'Vencidos';
+            txt.innerText = estado === 'ok' ? 'Al día' : estado === 'proximo' ? 'Próximos' : estado === 'falta' ? 'Falta' : estado === 'deteriorado' ? 'Deteriorados' : estado === 'prestado' ? 'Préstamos' : 'Vencidos';
             banner.classList.replace('hidden', 'flex');
             renderApp();
         }
@@ -3613,7 +3623,7 @@ if ('serviceWorker' in navigator) {
             if (!item) return;
             cerrarMenuContextualItem();
 
-            const permitePrestamo = item.ubicacion === 'furgoneta' || item.ubicacion === 'herramienta';
+            const permitePrestamo = item.ubicacion === 'herramienta';
             const estaPrestado = !!(item.prestamo && item.prestamo.activo);
             const estadoRapido = item.ubicacion === 'herramienta'
                 ? (item.falta === 'calibrando' ? 'Calibrando' : item.falta === 'deteriorado' ? 'Deteriorado' : item.falta === 'falta' ? 'Falta' : 'OK')
@@ -8542,7 +8552,7 @@ main,
     var relevant=items().filter(function(x){return x && (x.ubicacion==='furgoneta'||x.ubicacion==='herramienta');});
     var unassigned=[], incompatible=[];
     relevant.forEach(function(x){
-      var loc=String(x.sububicacion||x.ubicacionExacta||x.dondeExactamente||'').trim();
+      var loc=String(x.donde||x.ubicacionFisica||x.ubicacionArmario||x.localizacion||x.zona||x.cajon||x.posicion||x.lugar||x.detalleUbicacion||x.ubicacionExacta||x.dondeExactamente||'').trim();
       if(!loc){unassigned.push(x);return;}
       if(zones.length && !matches(loc,zones)) incompatible.push(x);
     });
@@ -8551,7 +8561,7 @@ main,
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function openReport(){
     var r=scan();
-    var row=function(x,type){var loc=x.sububicacion||x.ubicacionExacta||x.dondeExactamente||'Sin ubicación exacta';return '<div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><div class="font-bold text-slate-100">'+esc(x.equipo||x.nombre||x.id||'Material')+'</div><div class="text-[11px] mt-1 '+(type==='bad'?'text-amber-300':'text-slate-400')+'">'+esc(loc)+'</div></div>';};
+    var row=function(x,type){var loc=x.donde||x.ubicacionFisica||x.ubicacionArmario||x.localizacion||x.zona||x.cajon||x.posicion||x.lugar||x.detalleUbicacion||x.ubicacionExacta||x.dondeExactamente||'Sin ubicación exacta';return '<div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3"><div class="font-bold text-slate-100">'+esc(x.equipo||x.nombre||x.id||'Material')+'</div><div class="text-[11px] mt-1 '+(type==='bad'?'text-amber-300':'text-slate-400')+'">'+esc(loc)+'</div></div>';};
     var html='<div class="space-y-4"><div class="rounded-xl border border-cyan-800 bg-cyan-950/25 p-3 text-xs text-cyan-100"><b>Perfil activo:</b> '+esc(r.profile?r.profile.nombre:'Sin perfil')+'</div>';
     html+='<section><h4 class="font-black text-amber-300 mb-2">Ubicaciones incompatibles ('+r.incompatible.length+')</h4><div class="space-y-2">'+(r.incompatible.map(function(x){return row(x,'bad');}).join('')||'<p class="text-xs text-slate-400">No hay incompatibilidades.</p>')+'</div></section>';
     html+='<section><h4 class="font-black text-slate-300 mb-2">Sin ubicación exacta ('+r.unassigned.length+')</h4><div class="space-y-2">'+(r.unassigned.map(function(x){return row(x,'none');}).join('')||'<p class="text-xs text-slate-400">Todos tienen ubicación exacta.</p>')+'</div></section></div>';
